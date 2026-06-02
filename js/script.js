@@ -1,48 +1,74 @@
 // ═══════════════════════════════════════════════
-// DATA
+// DATA  (temporada 2025-26)
 // ═══════════════════════════════════════════════
 const LEAGUES=[
+  // Premier League 2025-26
+  // Saíram (rebaixados 24-25): Leicester City, Ipswich Town, Southampton
+  // Entraram (subidos 24-25): Sunderland, Leeds United, Burnley
   {id:'premier',name:'Premier League',flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',teams:[
     'Arsenal','Aston Villa','Bournemouth','Brentford','Brighton',
-    'Chelsea','Crystal Palace','Everton','Fulham','Ipswich Town',
-    'Leicester City','Liverpool','Manchester City','Manchester United',
-    'Newcastle','Nottingham Forest','Southampton','Tottenham','West Ham','Wolverhampton'
+    'Burnley','Chelsea','Crystal Palace','Everton','Fulham',
+    'Leeds United','Liverpool','Manchester City','Manchester United',
+    'Newcastle','Nottingham Forest','Sunderland','Tottenham','West Ham','Wolverhampton'
   ]},
+  // La Liga 2025-26
+  // Saíram (rebaixados 24-25): Las Palmas, Valladolid, Leganés
+  // Entraram (promovidos 24-25): Elche, Levante, Real Oviedo
   {id:'laliga',name:'La Liga',flag:'🇪🇸',teams:[
-    'Real Madrid','Barcelona','Atlético Madrid','Athletic Club','Real Sociedad',
-    'Villarreal','Betis','Sevilla','Valencia','Osasuna',
-    'Getafe','Celta Vigo','Las Palmas','Rayo Vallecano','Girona',
-    'Mallorca','Alavés','Leganés','Espanyol','Valladolid'
+    'Barcelona','Real Madrid','Villarreal','Atlético Madrid','Betis',
+    'Celta Vigo','Getafe','Rayo Vallecano','Valencia','Real Sociedad',
+    'Espanyol','Athletic Club','Sevilla','Alavés','Elche',
+    'Levante','Osasuna','Mallorca','Girona','Real Oviedo'
   ]},
+  // Bundesliga 2025-26
+  // Saíram (rebaixados 24-25): Holstein Kiel, VfL Bochum
+  // Entraram (promovidos 24-25): Hamburger SV, 1. FC Köln
+  // St. Pauli voltou na 25-26 (promovido) e foi rebaixado ao final dela
   {id:'bundesliga',name:'Bundesliga',flag:'🇩🇪',teams:[
-    'Bayern München','Bayer Leverkusen','Borussia Dortmund','RB Leipzig','Eintracht Frankfurt',
-    'Wolfsburg','Freiburg','Hoffenheim','Werder Bremen','Augsburg',
-    'Mönchengladbach','Union Berlin','VfB Stuttgart','Bochum','Mainz',
-    'Heidenheim','Holstein Kiel','St. Pauli'
+    'Bayern München','Borussia Dortmund','RB Leipzig','VfB Stuttgart','Hoffenheim',
+    'Bayer Leverkusen','Freiburg','Eintracht Frankfurt','Augsburg','Mainz',
+    'Union Berlin','Mönchengladbach','Hamburger SV','Köln','Werder Bremen',
+    'Wolfsburg','Heidenheim','St. Pauli'
   ]},
+  // Serie A 2025-26
+  // Saíram (rebaixados 24-25): Venezia, Monza, Lecce (foram rebaixados ao fim da 24-25)
+  // Entraram (promovidos 24-25): Sassuolo, Como (já estava), Cremonese, Pisa
+  // Tabela final: Inter, Napoli, Roma, Como, Milan, Juve, Atalanta, Bologna,
+  //               Lazio, Udinese, Sassuolo, Torino, Parma, Cagliari,
+  //               Fiorentina, Genoa, Lecce, Cremonese, Hellas Verona, Pisa
   {id:'seriea',name:'Serie A',flag:'🇮🇹',teams:[
-    'Inter','Juventus','Milan','Atalanta','Napoli',
-    'Roma','Lazio','Fiorentina','Bologna','Torino',
-    'Udinese','Genoa','Monza','Lecce','Cagliari',
-    'Parma','Verona','Como','Empoli','Venezia'
+    'Inter','Napoli','Roma','Como','Milan',
+    'Juventus','Atalanta','Bologna','Lazio','Udinese',
+    'Sassuolo','Torino','Parma','Cagliari','Fiorentina',
+    'Genoa','Lecce','Cremonese','Hellas Verona','Pisa'
   ]},
+  // Ligue 1 2025-26 (18 clubes)
+  // Saíram (rebaixados 24-25): Montpellier, Saint-Étienne, Angers
+  // Entraram (promovidos 24-25): Lorient, Paris FC, Metz
+  // Nizza era duplicata de Nice — removida; Metz promovido entra
   {id:'ligue1',name:'Ligue 1',flag:'🇫🇷',teams:[
-    'PSG','Monaco','Marseille','Lille','Lyon',
-    'Nice','Lens','Rennes','Strasbourg','Montpellier',
-    'Toulouse','Nantes','Reims','Brest','Le Havre',
-    'Saint-Étienne','Angers','Auxerre','Nizza','Metz'
+    'PSG','Lens','Lille','Lyon','Marseille',
+    'Monaco','Strasbourg','Rennes','Toulouse','Lorient',
+    'Paris FC','Brest','Angers','Le Havre','Auxerre',
+    'Nice','Nantes','Metz'
   ]},
+  // Eredivisie 2025-26 (18 clubes)
+  // Saíram (rebaixados/play-off 24-25): Almere City, RKC Waalwijk, Willem II
+  // Entraram: Volendam, Excelsior, Telstar
   {id:'eredivisie',name:'Eredivisie',flag:'🇳🇱',teams:[
-    'PSV','Ajax','Feyenoord','AZ','FC Utrecht',
-    'Twente','Go Ahead Eagles','NEC Nijmegen','Heerenveen','Sparta Rotterdam',
-    'Heracles','PEC Zwolle','RKC Waalwijk','Almere City','Fortuna Sittard',
-    'NAC Breda','Willem II','Groningen'
+    'PSV','Feyenoord','NEC Nijmegen','AZ','Twente',
+    'FC Utrecht','Go Ahead Eagles','Heerenveen','Ajax','Sparta Rotterdam',
+    'Heracles','PEC Zwolle','Fortuna Sittard','NAC Breda','Groningen',
+    'Volendam','Excelsior','Telstar'
   ]},
+  // Liga Portugal 2025-26 (18 clubes)
+  // Saíram (rebaixados 24-25): Farense, Portimonense, Boavista
+  // Entraram (promovidos 24-25): Alverca, Tondela, AVS
   {id:'portugal',name:'Liga Portugal',flag:'🇵🇹',teams:[
-    'Benfica','Porto','Sporting','Braga','Vitória SC',
-    'Famalicão','Boavista','Casa Pia','Estoril','Moreirense',
-    'Santa Clara','Nacional','Rio Ave','Arouca','Gil Vicente',
-    'Estrela Amadora','Farense','Portimonense'
+    'Porto','Sporting','Benfica','Braga','Famalicão',
+    'Gil Vicente','Moreirense','Arouca','Vitória SC','Estoril',
+    'Alverca','Rio Ave','Santa Clara','Nacional','Estrela Amadora',
+    'Casa Pia','Tondela','AVS'
   ]},
   {id:'mundial2026',name:'Mundial 2026',flag:'🌍',teams:[
     // Anfitriãs
@@ -70,43 +96,43 @@ const LEAGUES=[
   ]},
 ];
 const EMOJIS={
-  // Premier League
+  // Premier League 2025-26
   'Arsenal':'❤️','Aston Villa':'💜','Bournemouth':'❤️','Brentford':'🔴','Brighton':'💙',
-  'Chelsea':'💙','Crystal Palace':'🔵','Everton':'💙','Fulham':'⬛','Ipswich Town':'💙',
-  'Leicester City':'💙','Liverpool':'❤️','Manchester City':'🩵','Manchester United':'❤️',
-  'Newcastle':'⬛','Nottingham Forest':'🔴','Southampton':'🔴','Tottenham':'🤍',
+  'Burnley':'🔵','Chelsea':'💙','Crystal Palace':'🔵','Everton':'💙','Fulham':'⬛',
+  'Leeds United':'🤍','Liverpool':'❤️','Manchester City':'🩵','Manchester United':'❤️',
+  'Newcastle':'⬛','Nottingham Forest':'🔴','Sunderland':'🔴','Tottenham':'🤍',
   'West Ham':'🩵','Wolverhampton':'🟠',
-  // La Liga
-  'Real Madrid':'🤍','Barcelona':'🔵','Atlético Madrid':'❤️','Athletic Club':'❤️','Real Sociedad':'🔵',
-  'Villarreal':'💛','Betis':'💚','Sevilla':'🤍','Valencia':'🦇','Osasuna':'❤️',
-  'Getafe':'💙','Celta Vigo':'🩵','Las Palmas':'💛','Rayo Vallecano':'🔴','Girona':'🔴',
-  'Mallorca':'🔴','Alavés':'💙','Leganés':'💙','Espanyol':'🔵','Valladolid':'💜',
-  // Bundesliga
-  'Bayern München':'🔴','Bayer Leverkusen':'🔴','Borussia Dortmund':'💛','RB Leipzig':'🔴',
-  'Eintracht Frankfurt':'⚫','Wolfsburg':'💚','Freiburg':'🔴','Hoffenheim':'💙',
-  'Werder Bremen':'💚','Augsburg':'🔴','Mönchengladbach':'🟢','Union Berlin':'🔴',
-  'VfB Stuttgart':'🔴','Bochum':'💙','Mainz':'🔴','Heidenheim':'🔴','Holstein Kiel':'🔵','St. Pauli':'🟤',
-  // Serie A
-  'Inter':'🔵','Juventus':'🖤','Milan':'🔴','Atalanta':'🖤','Napoli':'💙',
-  'Roma':'🟡','Lazio':'🩵','Fiorentina':'💜','Bologna':'🔴','Torino':'🟤',
-  'Udinese':'⬛','Genoa':'🔴','Monza':'🔴','Lecce':'🟡','Cagliari':'🔴',
-  'Parma':'💛','Verona':'💙','Como':'🔵','Empoli':'💙','Venezia':'🟠',
-  // Ligue 1
-  'PSG':'🔵','Monaco':'🔴','Marseille':'🤍','Lille':'🔴','Lyon':'🔴',
-  'Nice':'🔴','Lens':'🟡','Rennes':'🔴','Strasbourg':'🔵','Montpellier':'🟠',
-  'Toulouse':'💜','Nantes':'💛','Reims':'🔴','Brest':'🔴','Le Havre':'💙',
-  'Saint-Étienne':'💚','Angers':'⬛','Auxerre':'🤍','Nizza':'🔴','Metz':'🟣',
-  // Eredivisie
-  'PSV':'❤️','Ajax':'🔴','Feyenoord':'❤️','AZ':'🔴','FC Utrecht':'🔴',
-  'Twente':'🔴','Go Ahead Eagles':'💛','NEC Nijmegen':'🔴','Heerenveen':'💙','Sparta Rotterdam':'🔴',
-  'Heracles':'🔴','PEC Zwolle':'💙','RKC Waalwijk':'💛','Almere City':'🔴','Fortuna Sittard':'💛',
-  'NAC Breda':'🔴','Willem II':'🔴','Groningen':'💚',
-  // Liga Portugal
-  'Benfica':'🔴','Porto':'💙','Sporting':'💚','Braga':'🔴','Vitória SC':'🖤',
-  'Famalicão':'💙','Boavista':'🖤','Casa Pia':'🔵','Estoril':'💛','Moreirense':'💚',
-  'Santa Clara':'🔴','Nacional':'🖤','Rio Ave':'💚','Arouca':'💛','Gil Vicente':'⬛',
-  'Estrela Amadora':'🔴','Farense':'🟠','Portimonense':'🟠',
-  // Seleções
+  // La Liga 2025-26
+  'Barcelona':'🔵','Real Madrid':'🤍','Villarreal':'💛','Atlético Madrid':'❤️','Betis':'💚',
+  'Celta Vigo':'🩵','Getafe':'💙','Rayo Vallecano':'🔴','Valencia':'🦇','Real Sociedad':'🔵',
+  'Espanyol':'🔵','Athletic Club':'❤️','Sevilla':'🤍','Alavés':'💙','Elche':'💚',
+  'Levante':'🔵','Osasuna':'❤️','Mallorca':'🔴','Girona':'🔴','Real Oviedo':'💙',
+  // Bundesliga 2025-26
+  'Bayern München':'🔴','Borussia Dortmund':'💛','RB Leipzig':'🔴','VfB Stuttgart':'🔴','Hoffenheim':'💙',
+  'Bayer Leverkusen':'🔴','Freiburg':'🔴','Eintracht Frankfurt':'⚫','Augsburg':'🔴','Mainz':'🔴',
+  'Union Berlin':'🔴','Mönchengladbach':'🟢','Hamburger SV':'🔵','Köln':'⚫','Werder Bremen':'💚',
+  'Wolfsburg':'💚','Heidenheim':'🔴','St. Pauli':'🟤',
+  // Serie A 2025-26
+  'Inter':'🔵','Napoli':'💙','Roma':'🟡','Como':'🔵','Milan':'🔴',
+  'Juventus':'🖤','Atalanta':'🖤','Bologna':'🔴','Lazio':'🩵','Udinese':'⬛',
+  'Sassuolo':'💚','Torino':'🟤','Parma':'💛','Cagliari':'🔴','Fiorentina':'💜',
+  'Genoa':'🔴','Lecce':'🟡','Cremonese':'🔴','Hellas Verona':'💙','Pisa':'🔵',
+  // Ligue 1 2025-26
+  'PSG':'🔵','Lens':'🟡','Lille':'🔴','Lyon':'🔴','Marseille':'🤍',
+  'Monaco':'🔴','Strasbourg':'🔵','Rennes':'🔴','Toulouse':'💜','Lorient':'🟠',
+  'Paris FC':'💙','Brest':'🔴','Angers':'⬛','Le Havre':'💙','Auxerre':'🤍',
+  'Nice':'🔴','Nantes':'💛','Metz':'🟣',
+  // Eredivisie 2025-26
+  'PSV':'❤️','Feyenoord':'❤️','NEC Nijmegen':'🔴','AZ':'🔴','Twente':'🔴',
+  'FC Utrecht':'🔴','Go Ahead Eagles':'💛','Heerenveen':'💙','Ajax':'🔴','Sparta Rotterdam':'🔴',
+  'Heracles':'🔴','PEC Zwolle':'💙','Fortuna Sittard':'💛','NAC Breda':'🔴','Groningen':'💚',
+  'Volendam':'🟠','Excelsior':'🔴','Telstar':'🤍',
+  // Liga Portugal 2025-26
+  'Porto':'💙','Sporting':'💚','Benfica':'🔴','Braga':'🔴','Famalicão':'💙',
+  'Gil Vicente':'⬛','Moreirense':'💚','Arouca':'💛','Vitória SC':'🖤','Estoril':'💛',
+  'Alverca':'🔴','Rio Ave':'💚','Santa Clara':'🔴','Nacional':'🖤','Estrela Amadora':'🔴',
+  'Casa Pia':'🔵','Tondela':'🔴','AVS':'🔵',
+  // Seleções Nacionais
   'Brasil':'💛','Argentina':'💙','França':'💙','Alemanha':'🖤','Espanha':'🔴',
   'Portugal':'🔴','Inglaterra':'🤍','Itália':'💙','Países Baixos':'🟠','Bélgica':'🔴',
   'Uruguai':'💙','Colômbia':'💛','Croácia':'🔴','Marrocos':'🔴','Japão':'🔴',
@@ -119,6 +145,51 @@ const EMOJIS={
   'Jamaica':'🟡','Panamá':'🔴','Honduras':'💙','Nova Zelândia':'🖤','Polônia':'🤍','Dinamarca':'🔴',
 };
 function emo(t){return EMOJIS[t]||'🛡️'}
+
+// ═══════════════════════════════════════════════
+// PERSISTÊNCIA — localStorage
+// ═══════════════════════════════════════════════
+const STORAGE_KEY = 'sorte_ar_state_v1';
+
+function saveState() {
+  try {
+    const s = __collectState(); // já serializa selectedLeagues como array
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  } catch(e) {
+    console.warn('Não foi possível salvar o estado:', e);
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) {
+    console.warn('Não foi possível carregar o estado:', e);
+    return null;
+  }
+}
+
+function clearSavedState() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// ═══════════════════════════════════════════════
+// MAPA DE CALLBACKS — substitui eval()
+// ═══════════════════════════════════════════════
+// Armazena funções de save indexadas por panelId para evitar eval().
+const SCORER_SAVE_CBS = {};
+
+function registerScorerCb(panelId, fn) {
+  SCORER_SAVE_CBS[panelId] = fn;
+}
+
+function callScorerCb(panelId) {
+  if (typeof SCORER_SAVE_CBS[panelId] === 'function') {
+    SCORER_SAVE_CBS[panelId]();
+  }
+}
 
 // ═══════════════════════════════════════════════
 // STATE
@@ -180,6 +251,7 @@ function goToPage(name){
   renderStepper();
   if(name==='teams' && teamMode==='custom') renderCustomTeamsList();
   window.scrollTo({top:0,behavior:'smooth'});
+  saveState();
 }
 
 // ═══════════════════════════════════════════════
@@ -237,11 +309,12 @@ function addPlayer(){
   players.push({name:n, pot});
   inp.value='';
   renderPlayers();
+  saveState();
   inp.focus();
 }
 
-function removePlayer(i){ players.splice(i,1); renderPlayers(); }
-function clearPlayers(){ players=[]; renderPlayers(); }
+function removePlayer(i){ players.splice(i,1); renderPlayers(); saveState(); }
+function clearPlayers(){ players=[]; renderPlayers(); saveState(); }
 
 function changePlayerPot(i, pot){
   players[i].pot = pot;
@@ -421,6 +494,13 @@ function runDraw(){
     const missing=players.filter(p=>!customTeamMap[p.name]||!customTeamMap[p.name].trim());
     if(missing.length>0){alert('Defina o time de todos os jogadores antes de sortear!\nFaltando: '+missing.map(p=>p.name).join(', '));return;}
     const teamList=players.map(p=>customTeamMap[p.name].trim());
+    // Verificar times duplicados
+    const uniqueTeams = new Set(teamList);
+    if(uniqueTeams.size < teamList.length){
+      const duplicates = teamList.filter((t,i)=>teamList.indexOf(t)!==i);
+      alert('Existem times duplicados: ' + [...new Set(duplicates)].join(', ') + '\nCada jogador deve ter um time único.');
+      return;
+    }
     const shuffledTeams=shuffle(teamList);
     // if pots active, sort result by pot for display
     const sp = potsMode ? shuffleWithinPots(players) : shuffle(players);
@@ -622,7 +702,35 @@ function calcLeagueStandings(){
     else if(gh<ga){ a.v++; a.pts+=3; h.d++; }
     else { h.e++; a.e++; h.pts+=1; a.pts+=1; }
   });
-  stats.sort((a,b)=>b.pts-a.pts||(b.gp-b.gc)-(a.gp-a.gc)||b.gp-a.gp||a.player.localeCompare(b.player));
+
+  // Desempate: pts | saldo geral | gols | confronto direto | alfabético
+  function directH2H(a, b){
+    let ptsA=0,ptsB=0,sgA=0,gpA=0;
+    tournament.league.matches.forEach(m=>{
+      if(!m.done) return;
+      const gh=parseInt(m.scoreH), ga=parseInt(m.scoreA);
+      if(m.homeIdx===a.idx && m.awayIdx===b.idx){
+        sgA+=gh-ga; gpA+=gh;
+        if(gh>ga){ptsA+=3;} else if(ga>gh){ptsB+=3;} else{ptsA++;ptsB++;}
+      } else if(m.homeIdx===b.idx && m.awayIdx===a.idx){
+        sgA+=ga-gh; gpA+=ga;
+        if(ga>gh){ptsA+=3;} else if(gh>ga){ptsB+=3;} else{ptsA++;ptsB++;}
+      }
+    });
+    if(ptsA!==ptsB) return ptsB-ptsA;
+    if(sgA!==0) return -sgA;
+    return -gpA;
+  }
+
+  stats.sort((a,b)=>{
+    if(b.pts!==a.pts) return b.pts-a.pts;
+    const sgA=a.gp-a.gc, sgB=b.gp-b.gc;
+    if(sgB!==sgA) return sgB-sgA;
+    if(b.gp!==a.gp) return b.gp-a.gp;
+    const h2h=directH2H(a,b);
+    if(h2h!==0) return h2h;
+    return a.player.localeCompare(b.player);
+  });
   return stats;
 }
 
@@ -733,7 +841,7 @@ function renderLeagueMatches(){
           </div>
           ${scorersDisplayLine(m)}
           <div id="lgp-${m.globalIdx}" style="display:none">
-            ${renderScorerPanel(m, parseInt(m.scoreH)+parseInt(m.scoreA), `saveLeagueGoals(${m.globalIdx})`, `lgp-${m.globalIdx}`, [{player:h.player,team:h.team},{player:a.player,team:a.team}])}
+            ${renderScorerPanel(m, parseInt(m.scoreH)+parseInt(m.scoreA), ()=>saveLeagueGoals(m.globalIdx), `lgp-${m.globalIdx}`, [{player:h.player,team:h.team},{player:a.player,team:a.team}])}
           </div>
         </div>`;
       } else {
@@ -741,9 +849,9 @@ function renderLeagueMatches(){
           <div class="match-teams">
             <span class="match-team home" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">${emo(h.team)} ${h.player}<span style="font-size:10px;color:var(--text3);font-weight:400">${h.team}</span></span>
             <span class="match-score">
-              <input type="number" min="0" class="score-input" id="lm-${m.globalIdx}-h" placeholder="0"/>
+              <input type="number" min="0" max="99" class="score-input" id="lm-${m.globalIdx}-h" placeholder="0"/>
               <span class="score-sep">–</span>
-              <input type="number" min="0" class="score-input" id="lm-${m.globalIdx}-a" placeholder="0"/>
+              <input type="number" min="0" max="99" class="score-input" id="lm-${m.globalIdx}-a" placeholder="0"/>
             </span>
             <span class="match-team away" style="display:flex;flex-direction:column;align-items:flex-start;gap:1px">${emo(a.team)} ${a.player}<span style="font-size:10px;color:var(--text3);font-weight:400">${a.team}</span></span>
           </div>
@@ -774,6 +882,7 @@ function confirmLeagueMatch(idx){
   const a = parseInt(document.getElementById(`lm-${idx}-a`).value);
   if(isNaN(h)||isNaN(a)){alert('Preencha os dois placares!');return;}
   m.scoreH=h; m.scoreA=a; m.done=true;
+  saveState();
   renderLeaguePage();
   if(leagueActiveTab==='matches') switchLeagueTab('matches');
 }
@@ -781,6 +890,7 @@ function confirmLeagueMatch(idx){
 function undoLeagueMatch(idx){
   const m = tournament.league.matches[idx];
   m.done=false; m.scoreH=''; m.scoreA=''; m.scorers=[];
+  saveState();
   renderLeaguePage();
   if(leagueActiveTab==='matches') switchLeagueTab('matches');
 }
@@ -797,6 +907,7 @@ function toggleLeagueGoalsPanel(idx){
 function saveLeagueGoals(idx){
   const m = tournament.league.matches[idx];
   m.scorers = readScorerRows(`lgp-${idx}`);
+  saveState();
   renderLeaguePage();
   if(leagueActiveTab==='matches') switchLeagueTab('matches');
 }
@@ -904,6 +1015,13 @@ function renderScorerPanel(matchRef, scorerTotal, saveCallback, panelId, matchPl
   const entries = saved.length ? saved.map(s=>({name:s.player, goals:s.goals, team:s.team||''})) : [{name:'',goals:1,team:''}];
   const mp = matchPlayers || [];
 
+  // Registra a callback no mapa para evitar eval()
+  if(typeof saveCallback === 'function') {
+    registerScorerCb(panelId, saveCallback);
+  }
+  // Compatibilidade: saveCallback pode ser string (legado) ou função
+  const cbKey = panelId;
+
   function makeTeamSelect(selectedTeam, rowIdx){
     if(!mp.length) return '';
     const opts = mp.map(p=>`<option value="${p.team}" ${selectedTeam===p.team?'selected':''}>${p.player} (${p.team})</option>`).join('') +
@@ -934,7 +1052,7 @@ function renderScorerPanel(matchRef, scorerTotal, saveCallback, panelId, matchPl
     <button class="scorers-add-btn" data-addpanel="${panelId}" data-mp="${mpEncoded}">+ Adicionar jogador</button>
     <div class="scorers-total-hint ${hintInfo.cls}" id="${panelId}-hint">${hintInfo.html}</div>
     <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-      <button class="btn btn-primary btn-sm" data-savecb="${saveCallback}" data-total="${scorerTotal}" id="${panelId}-savebtn" ${hintInfo.block?"disabled style='opacity:.35;cursor:not-allowed'":""}>Salvar</button>
+      <button class="btn btn-primary btn-sm" data-savecb="${cbKey}" data-total="${scorerTotal}" id="${panelId}-savebtn" ${hintInfo.block?"disabled style='opacity:.35;cursor:not-allowed'":""}>Salvar</button>
       <button class="btn btn-sm" data-closepanel="${panelId}">Fechar</button>
     </div>
   </div>`;
@@ -991,10 +1109,10 @@ document.addEventListener('click', function(e){
     if(panel) panel.style.display='none';
     return;
   }
-  // Salvar (dispara a callback string armazenada)
+  // Salvar — usa mapa de callbacks em vez de eval()
   const saveBtn = e.target.closest('[data-savecb]');
   if(saveBtn && !saveBtn.disabled){
-    try{ eval(saveBtn.dataset.savecb); } catch(err){ console.error(err); }
+    callScorerCb(saveBtn.dataset.savecb);
     return;
   }
 });
@@ -1195,7 +1313,7 @@ function renderGroupContent(idx, contentId, onlyGroups){
           </div>
           ${scorersDisplayLine(m)}
           <div id="gp-${idx}-${mi}" style="display:none">
-            ${renderScorerPanel(m, parseInt(m.scoreA)+parseInt(m.scoreB), `saveGroupGoals(${idx},${mi},'${contentId}',${onlyGroups})`, `gp-${idx}-${mi}`, [{player:pa.player,team:pa.team},{player:pb.player,team:pb.team}])}
+            ${renderScorerPanel(m, parseInt(m.scoreA)+parseInt(m.scoreB), ()=>saveGroupGoals(idx,mi,contentId,onlyGroups), `gp-${idx}-${mi}`, [{player:pa.player,team:pa.team},{player:pb.player,team:pb.team}])}
           </div>
         </div>`;
       } else {
@@ -1203,9 +1321,9 @@ function renderGroupContent(idx, contentId, onlyGroups){
           <div class="match-teams">
             <span class="match-team home" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">${emo(pa.team)} ${pa.player}<span style="font-size:10px;color:var(--text3);font-weight:400">${pa.team}</span></span>
             <span class="match-score">
-              <input type="number" min="0" class="score-input" id="gs-${idx}-${mi}-a" placeholder="0"/>
+              <input type="number" min="0" max="99" class="score-input" id="gs-${idx}-${mi}-a" placeholder="0"/>
               <span class="score-sep">–</span>
-              <input type="number" min="0" class="score-input" id="gs-${idx}-${mi}-b" placeholder="0"/>
+              <input type="number" min="0" max="99" class="score-input" id="gs-${idx}-${mi}-b" placeholder="0"/>
             </span>
             <span class="match-team away" style="display:flex;flex-direction:column;align-items:flex-start;gap:1px">${emo(pb.team)} ${pb.player}<span style="font-size:10px;color:var(--text3);font-weight:400">${pb.team}</span></span>
           </div>
@@ -1234,6 +1352,7 @@ function toggleGroupGoalsPanel(gi, mi, contentId, onlyGroups){
 function saveGroupGoals(gi, mi, contentId, onlyGroups){
   const m=tournament.groups[gi].matches[mi];
   m.scorers = readScorerRows(`gp-${gi}-${mi}`);
+  saveState();
   renderGroupContent(gi, contentId, onlyGroups);
 }
 
@@ -1243,6 +1362,7 @@ function confirmGroupMatch(gi, mi, contentId, onlyGroups){
   const b=parseInt(document.getElementById(`gs-${gi}-${mi}-b`).value);
   if(isNaN(a)||isNaN(b)){alert('Preencha os dois placares!');return;}
   m.scoreA=a; m.scoreB=b; m.done=true;
+  saveState();
   const idx=getCurrentGroupTab(onlyGroups?'groups-only-tabs':'groups-tabs');
   renderGroupContent(gi, contentId, onlyGroups);
   checkGroupsComplete();
@@ -1251,6 +1371,7 @@ function confirmGroupMatch(gi, mi, contentId, onlyGroups){
 function undoGroupMatch(gi, mi, contentId, onlyGroups){
   const m=tournament.groups[gi].matches[mi];
   m.done=false; m.scoreA=''; m.scoreB=''; m.scorers=[];
+  saveState();
   renderGroupContent(gi, contentId, onlyGroups);
   checkGroupsComplete();
 }
@@ -1275,7 +1396,40 @@ function calcGroupStandings(g){
     else if(sb>sa){map[pb].v++;map[pb].pts+=3;map[pa].d++;}
     else{map[pa].e++;map[pb].e++;map[pa].pts++;map[pb].pts++;}
   });
-  return Object.values(map).sort((a,b)=>b.pts-a.pts||(b.gp-b.gc)-(a.gp-a.gc)||b.gp-a.gp);
+
+  const arr = Object.values(map);
+
+  // Desempate 1: pontos | 2: saldo de gols geral | 3: gols marcados |
+  // 4: confronto direto (pts, saldo, gols) | 5: ordem alfabética
+  function directH2H(a, b){
+    let ptsA=0,ptsB=0,sgA=0,sgB=0,gpA=0;
+    g.matches.forEach(m=>{
+      if(!m.done) return;
+      const pa=g.pairs[m.a].player, pb=g.pairs[m.b].player;
+      const sa=parseInt(m.scoreA), sb=parseInt(m.scoreB);
+      if(pa===a.player && pb===b.player){
+        sgA+=sa-sb; gpA+=sa;
+        if(sa>sb){ptsA+=3;} else if(sb>sa){ptsB+=3;} else{ptsA++;ptsB++;}
+      } else if(pa===b.player && pb===a.player){
+        sgA+=sb-sa; gpA+=sb;
+        if(sb>sa){ptsA+=3;} else if(sa>sb){ptsB+=3;} else{ptsA++;ptsB++;}
+      }
+    });
+    if(ptsA!==ptsB) return ptsB-ptsA;
+    if(sgA!==0) return -sgA; // saldo no confronto (a favor de A se sgA>0)
+    return -gpA; // gols marcados no confronto
+  }
+
+  arr.sort((a,b)=>{
+    if(b.pts!==a.pts) return b.pts-a.pts;
+    const sgA=a.gp-a.gc, sgB=b.gp-b.gc;
+    if(sgB!==sgA) return sgB-sgA;
+    if(b.gp!==a.gp) return b.gp-a.gp;
+    const h2h=directH2H(a,b);
+    if(h2h!==0) return h2h;
+    return a.player.localeCompare(b.player);
+  });
+  return arr;
 }
 
 function checkGroupsComplete(){
@@ -1449,7 +1603,7 @@ function renderKnockoutMatches(){
           </div>
           ${scorersDisplayLine(m)}
           <div id="kgp-${ri}-${mi}" style="display:none">
-            ${renderScorerPanel(m, parseInt(m.scoreA)+parseInt(m.scoreB), `saveKnockoutGoals(${ri},${mi})`, `kgp-${ri}-${mi}`, [{player:m.playerA,team:m.teamA||''},{player:m.playerB,team:m.teamB||''}])}
+            ${renderScorerPanel(m, parseInt(m.scoreA)+parseInt(m.scoreB), ()=>saveKnockoutGoals(ri,mi), `kgp-${ri}-${mi}`, [{player:m.playerA,team:m.teamA||''},{player:m.playerB,team:m.teamB||''}])}
           </div>
         </div>`;
       } else {
@@ -1457,9 +1611,9 @@ function renderKnockoutMatches(){
           <div class="match-teams">
             <span class="match-team home" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">${emo(m.teamA)} ${m.playerA}<span style="font-size:10px;color:var(--text3);font-weight:400">${m.teamA||''}</span></span>
             <span class="match-score">
-              <input type="number" min="0" class="score-input" id="ks-${ri}-${mi}-a" placeholder="0"/>
+              <input type="number" min="0" max="99" class="score-input" id="ks-${ri}-${mi}-a" placeholder="0"/>
               <span class="score-sep">–</span>
-              <input type="number" min="0" class="score-input" id="ks-${ri}-${mi}-b" placeholder="0"/>
+              <input type="number" min="0" max="99" class="score-input" id="ks-${ri}-${mi}-b" placeholder="0"/>
             </span>
             <span class="match-team away" style="display:flex;flex-direction:column;align-items:flex-start;gap:1px">${emo(m.teamB)} ${m.playerB}<span style="font-size:10px;color:var(--text3);font-weight:400">${m.teamB||''}</span></span>
           </div>
@@ -1491,7 +1645,7 @@ function renderKnockoutMatches(){
         </div>
         ${scorersDisplayLine(m)}
         <div id="kgp-third" style="display:none">
-          ${renderScorerPanel(m, parseInt(m.scoreA)+parseInt(m.scoreB), `saveThirdPlaceGoals()`, `kgp-third`, [{player:m.playerA,team:m.teamA||''},{player:m.playerB,team:m.teamB||''}])}
+          ${renderScorerPanel(m, parseInt(m.scoreA)+parseInt(m.scoreB), ()=>saveThirdPlaceGoals(), `kgp-third`, [{player:m.playerA,team:m.teamA||''},{player:m.playerB,team:m.teamB||''}])}
         </div>
       </div>`;
     } else {
@@ -1499,9 +1653,9 @@ function renderKnockoutMatches(){
         <div class="match-teams">
           <span class="match-team home" style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">${emo(m.teamA)} ${m.playerA}<span style="font-size:10px;color:var(--text3);font-weight:400">${m.teamA||''}</span></span>
           <span class="match-score">
-            <input type="number" min="0" class="score-input" id="ks-third-a" placeholder="0"/>
+            <input type="number" min="0" max="99" class="score-input" id="ks-third-a" placeholder="0"/>
             <span class="score-sep">–</span>
-            <input type="number" min="0" class="score-input" id="ks-third-b" placeholder="0"/>
+            <input type="number" min="0" max="99" class="score-input" id="ks-third-b" placeholder="0"/>
           </span>
           <span class="match-team away" style="display:flex;flex-direction:column;align-items:flex-start;gap:1px">${emo(m.teamB)} ${m.playerB}<span style="font-size:10px;color:var(--text3);font-weight:400">${m.teamB||''}</span></span>
         </div>
@@ -1593,6 +1747,7 @@ function toggleThirdPlaceGoalsPanel(){
 function saveThirdPlaceGoals(){
   const m=tournament.thirdPlaceMatch;
   m.scorers=readScorerRows('kgp-third');
+  saveState();
   renderKnockoutPage();
 }
 function confirmThirdPlaceMatch(){
@@ -1601,12 +1756,9 @@ function confirmThirdPlaceMatch(){
   const b=parseInt(document.getElementById('ks-third-b').value);
   if(isNaN(a)||isNaN(b)){alert('Preencha os dois placares!');return;}
   if(a===b){
-    // Mostra painel inline de pênaltis dentro do match-row da partida de 3º
-    // O container é o match-row pai do botão Confirmar — usamos um id dedicado
     const rowId = 'pen-wrap-third';
     let wrap = document.getElementById(rowId);
     if(!wrap){
-      // Cria o wrapper logo abaixo do match-row
       const section = document.getElementById('knockout-matches-section');
       const rows = section.querySelectorAll('.match-row');
       const lastRow = rows[rows.length-1];
@@ -1614,28 +1766,30 @@ function confirmThirdPlaceMatch(){
       wrap.id = rowId;
       lastRow.parentNode.insertBefore(wrap, lastRow.nextSibling);
     }
-    wrap.innerHTML = ''; // limpa se já havia algo
-    // Usa o próprio wrap como container do painel
+    wrap.innerHTML = '';
     wrap.id = rowId;
     renderPenaltyPanel(rowId, m.playerA, m.playerB,
       (pa, pb)=>{
         m.penA=pa; m.penB=pb;
         m.scoreA=a; m.scoreB=b; m.done=true; m.winner=pa>pb?0:1;
+        saveState();
         renderKnockoutPage();
         if(tournament.champion && window.__autoFinalize) window.__autoFinalize();
       },
-      ()=>{ /* cancelado — não faz nada */ }
+      ()=>{ /* cancelado */ }
     );
     return;
   }
   m.penA=null; m.penB=null;
   m.scoreA=a;m.scoreB=b;m.done=true;m.winner=a>b?0:1;
+  saveState();
   renderKnockoutPage();
   if(tournament.champion && window.__autoFinalize) window.__autoFinalize();
 }
 function undoThirdPlaceMatch(){
   const m=tournament.thirdPlaceMatch;
   m.done=false;m.scoreA='';m.scoreB='';m.winner=null;m.scorers=[];m.penA=null;m.penB=null;
+  saveState();
   renderKnockoutPage();
 }
 window.toggleThirdPlaceGoalsPanel=toggleThirdPlaceGoalsPanel;
@@ -1655,6 +1809,7 @@ function toggleKnockoutGoalsPanel(ri, mi){
 function saveKnockoutGoals(ri, mi){
   const m=tournament.knockoutRounds[ri].matches[mi];
   m.scorers = readScorerRows(`kgp-${ri}-${mi}`);
+  saveState();
   renderKnockoutPage();
 }
 
@@ -1666,7 +1821,6 @@ function confirmKnockoutMatch(ri, mi){
   if(a===b){
     // Injeta painel de pênaltis logo abaixo do match-row atual
     const rowId = `pen-wrap-${ri}-${mi}`;
-    // Localiza o match-row pelo botão confirmar e insere após ele
     const btn = document.querySelector(`[onclick="confirmKnockoutMatch(${ri},${mi})"]`);
     const matchRow = btn && btn.closest('.match-row');
     if(matchRow){
@@ -1682,6 +1836,7 @@ function confirmKnockoutMatch(ri, mi){
           m.penA=pa; m.penB=pb;
           m.scoreA=a; m.scoreB=b; m.done=true; m.winner=pa>pb?0:1;
           propagateKnockout();
+          saveState();
           renderKnockoutPage();
         },
         ()=>{ /* cancelado */ }
@@ -1692,6 +1847,7 @@ function confirmKnockoutMatch(ri, mi){
   m.penA=null; m.penB=null; m.winner=a>b?0:1;
   m.scoreA=a;m.scoreB=b;m.done=true;
   propagateKnockout();
+  saveState();
   renderKnockoutPage();
 }
 
@@ -1701,7 +1857,6 @@ function undoKnockoutMatch(ri, mi){
   for(let r=ri+1;r<tournament.knockoutRounds.length;r++){
     tournament.knockoutRounds[r].matches.forEach(nm=>{nm.done=false;nm.scoreA='';nm.scoreB='';nm.winner=null;nm.teamA=null;nm.playerA='A definir';nm.teamB=null;nm.playerB='A definir';nm.scorers=[];});
   }
-  // Resetar partida de 3º lugar quando uma semifinal/anterior é editada
   if(tournament.thirdPlaceMatch){
     const tpm=tournament.thirdPlaceMatch;
     tpm.teamA=null;tpm.playerA='A definir';tpm.teamB=null;tpm.playerB='A definir';
@@ -1709,6 +1864,7 @@ function undoKnockoutMatch(ri, mi){
   }
   tournament.champion=null;
   propagateKnockout();
+  saveState();
   renderKnockoutPage();
 }
 
@@ -1771,15 +1927,20 @@ function showChampion(){
     section.innerHTML='';
   }
   goToPage('champion');
+  saveState();
   if(window.__autoFinalize) window.__autoFinalize();
 }
 
 function restartAll(){
   players=[];manualTeams=[];poolTeams=[];customTeamMap={};selectedLeagues=new Set();drawnPairs=[];
-  tournament={format:'groups-knockout',numGroups:4,qualifyPerGroup:2,groups:[],knockoutRounds:[],champion:null,thirdPlace:false,thirdPlaceMatch:null};
+  tournament={format:'groups-knockout',numGroups:4,qualifyPerGroup:2,groups:[],knockoutRounds:[],champion:null,thirdPlace:false,thirdPlaceMatch:null,league:null};
   teamMode='league';
   potsMode=false;
   activePots=['A','B'];
+  // Limpa estado salvo
+  clearSavedState();
+  // Limpa mapa de callbacks de artilheiros
+  Object.keys(SCORER_SAVE_CBS).forEach(k=>delete SCORER_SAVE_CBS[k]);
   // reset toggle UI
   document.getElementById('pots-toggle-track').classList.remove('on');
   document.getElementById('pot-select-wrap').style.display='none';
@@ -1793,12 +1954,26 @@ function restartAll(){
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
-renderLeagues();
-renderPlayers();
-renderManualTeams();
-renderPoolTeams();
-renderStepper();
-updateGroupPreview();
+(function(){
+  const saved = loadState();
+  if(saved){
+    // Restaura sessão anterior silenciosamente
+    try{
+      __applyState(saved);
+      return; // __applyState já chama goToPage, renderLeagues etc.
+    }catch(e){
+      console.warn('Falha ao restaurar estado salvo, iniciando do zero.', e);
+      clearSavedState();
+    }
+  }
+  // Primeira visita ou estado inválido — inicializa normalmente
+  renderLeagues();
+  renderPlayers();
+  renderManualTeams();
+  renderPoolTeams();
+  renderStepper();
+  updateGroupPreview();
+})();
 
 // ═══════════════════════════════════════════════
 // BRIDGE — comunicação com o app React (salvar/carregar campeonatos)
