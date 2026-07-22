@@ -489,22 +489,14 @@ function runDraw(){
   if(players.length===0){alert('Adicione pelo menos um jogador!');return;}
   const playerNames = players.map(p=>p.name);
 
-  // MODE: custom — one team per player, shuffle assignment
+  // MODE: custom — one team per player, fixed assignment (no shuffle of teams)
   if(teamMode==='custom'){
     const missing=players.filter(p=>!customTeamMap[p.name]||!customTeamMap[p.name].trim());
     if(missing.length>0){alert('Defina o time de todos os jogadores antes de sortear!\nFaltando: '+missing.map(p=>p.name).join(', '));return;}
-    const teamList=players.map(p=>customTeamMap[p.name].trim());
-    // Verificar times duplicados
-    const uniqueTeams = new Set(teamList);
-    if(uniqueTeams.size < teamList.length){
-      const duplicates = teamList.filter((t,i)=>teamList.indexOf(t)!==i);
-      alert('Existem times duplicados: ' + [...new Set(duplicates)].join(', ') + '\nCada jogador deve ter um time único.');
-      return;
-    }
-    const shuffledTeams=shuffle(teamList);
-    // if pots active, sort result by pot for display
+    // Monta os pares mantendo o time de cada jogador — sem embaralhar times
+    // Apenas ordena a exibição (por pote, se ativo)
     const sp = potsMode ? shuffleWithinPots(players) : shuffle(players);
-    drawnPairs=sp.map((p,i)=>({player:p.name,team:shuffledTeams[i],pot:p.pot}));
+    drawnPairs=sp.map(p=>({player:p.name,team:customTeamMap[p.name].trim(),pot:p.pot}));
     renderDrawResults();
     goToPage('draw');
     return;
