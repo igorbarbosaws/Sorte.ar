@@ -11,11 +11,55 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/style.css"/>
+<script src="js/api.js"></script>
 <script src="js/script.js" defer></script>
 
 </head>
 <body>
 <div class="app">
+
+<!-- AUTH BAR -->
+<div id="auth-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb;padding:8px 16px;display:flex;justify-content:flex-end;align-items:center;gap:10px">
+  <span id="auth-user-name" style="font-size:13px;color:#374151;font-weight:500"></span>
+  <button id="auth-profile-btn" onclick="openProfilePage()" style="display:none" class="btn btn-sm">👤 Perfil</button>
+  <button id="auth-logout-btn" onclick="handleLogout()" style="display:none" class="btn btn-sm">Sair</button>
+  <button id="auth-login-btn" onclick="showAuthModal()" class="btn btn-sm btn-primary">Entrar / Registrar</button>
+</div>
+<!-- AUTH MODAL -->
+<div id="auth-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+  <div style="background:white;border-radius:16px;padding:24px;width:min(400px,90vw);box-shadow:0 20px 60px rgba(0,0,0,0.2)">
+    <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e5e7eb">
+      <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;padding:8px;border:none;background:none;cursor:pointer;font-weight:600;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px">Entrar</button>
+      <button id="tab-register" onclick="switchAuthTab('register')" style="flex:1;padding:8px;border:none;background:none;cursor:pointer;font-weight:600;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px">Registrar</button>
+    </div>
+    <div id="auth-error" style="display:none;color:#dc2626;font-size:13px;margin-bottom:12px;padding:8px 12px;background:#fef2f2;border-radius:8px"></div>
+    <div id="form-login">
+      <input id="login-email" type="email" placeholder="E-mail" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:10px;font-size:14px;box-sizing:border-box"/>
+      <input id="login-password" type="password" placeholder="Senha" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:16px;font-size:14px;box-sizing:border-box"/>
+      <button onclick="handleLogin()" class="btn btn-primary btn-full">Entrar</button>
+    </div>
+    <div id="form-register" style="display:none">
+      <input id="reg-name" type="text" placeholder="Nome de exibição" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:10px;font-size:14px;box-sizing:border-box"/>
+      <input id="reg-email" type="email" placeholder="E-mail" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:10px;font-size:14px;box-sizing:border-box"/>
+      <input id="reg-password" type="password" placeholder="Senha (mín. 8 caracteres)" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:16px;font-size:14px;box-sizing:border-box"/>
+      <button onclick="handleRegister()" class="btn btn-primary btn-full">Criar conta</button>
+    </div>
+    <button onclick="hideAuthModal()" style="margin-top:12px;width:100%;padding:8px;border:none;background:none;cursor:pointer;color:#9ca3af;font-size:13px">Fechar</button>
+  </div>
+</div>
+
+<!-- MIGRATION MODAL -->
+<div id="migration-modal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
+  <div style="background:white;border-radius:16px;padding:24px;width:min(420px,90vw);box-shadow:0 20px 60px rgba(0,0,0,0.2)">
+    <h3 style="margin:0 0 12px;font-size:16px;font-weight:700">📦 Migrar campeonatos locais</h3>
+    <p style="font-size:13px;color:#6b7280;margin:0 0 16px">Encontramos campeonatos salvos neste dispositivo. Deseja enviá-los para o servidor para acessá-los em qualquer lugar?</p>
+    <div id="migration-status" style="display:none;font-size:13px;margin-bottom:12px;padding:8px 12px;border-radius:8px"></div>
+    <div style="display:flex;gap:10px">
+      <button id="migration-confirm-btn" onclick="handleMigrationConfirm()" class="btn btn-primary" style="flex:1">Migrar agora</button>
+      <button onclick="handleMigrationDecline()" class="btn" style="flex:1">Agora não</button>
+    </div>
+  </div>
+</div>
 
 <div class="app-header">
   <div class="header-eyebrow">⚽ futebol · sorteio · campeonato</div>
@@ -328,6 +372,67 @@
   <div id="league-table-view"></div>
   <div id="league-matches-view" style="display:none"></div>
   <div id="league-scorers-view" style="display:none"></div>
+</div>
+
+<!-- ═══════════════ PAGE: PERFIL ═══════════════ -->
+<div class="page" id="page-profile">
+  <div class="card" style="margin-bottom:.75rem">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+      <div id="profile-avatar" style="width:56px;height:56px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden">👤</div>
+      <div>
+        <div id="profile-display-name" style="font-size:17px;font-weight:700"></div>
+        <div id="profile-joined" style="font-size:12px;color:#6b7280"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+      <div class="summary-box" style="text-align:center;padding:10px 6px">
+        <div id="profile-stat-player" style="font-size:20px;font-weight:700;color:#2563eb">—</div>
+        <div style="font-size:10px;color:#6b7280;letter-spacing:.03em">como jogador</div>
+      </div>
+      <div class="summary-box" style="text-align:center;padding:10px 6px">
+        <div id="profile-stat-wins" style="font-size:20px;font-weight:700;color:#15803d">—</div>
+        <div style="font-size:10px;color:#6b7280;letter-spacing:.03em">🏆 vitórias</div>
+      </div>
+      <div class="summary-box" style="text-align:center;padding:10px 6px">
+        <div id="profile-stat-runnerup" style="font-size:20px;font-weight:700;color:#d97706">—</div>
+        <div style="font-size:10px;color:#6b7280;letter-spacing:.03em">🥈 vice</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feed -->
+  <div class="card" style="margin-bottom:.75rem">
+    <div class="card-title" style="margin-bottom:12px">📋 Meus Campeonatos</div>
+    <div id="profile-feed" style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:13px;color:#9ca3af">Carregando...</span>
+    </div>
+  </div>
+
+  <!-- Friend requests pending -->
+  <div class="card" style="margin-bottom:.75rem">
+    <div class="card-title" style="margin-bottom:10px">🤝 Solicitações pendentes</div>
+    <div id="profile-pending-requests" style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:13px;color:#9ca3af">Nenhuma solicitação pendente.</span>
+    </div>
+    <div style="margin-top:12px;border-top:1px solid #e5e7eb;padding-top:12px">
+      <p class="section-label">Adicionar amigo por e-mail</p>
+      <div class="input-row">
+        <input id="friend-email-input" type="email" placeholder="E-mail do amigo..." style="flex:1"/>
+        <button class="btn btn-primary btn-sm" onclick="sendFriendRequest()">Enviar</button>
+      </div>
+      <span id="friend-request-status" style="font-size:12px;display:none;margin-top:6px"></span>
+    </div>
+  </div>
+
+  <!-- Friend list -->
+  <div class="card" style="margin-bottom:.75rem">
+    <div class="card-title" style="margin-bottom:10px">👥 Meus amigos</div>
+    <div id="profile-friends-list" style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:13px;color:#9ca3af">Nenhum amigo ainda.</span>
+    </div>
+  </div>
+
+  <button class="btn btn-full" onclick="goToPage('players')">← Voltar ao início</button>
 </div>
 
 </div><!-- .app -->

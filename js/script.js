@@ -158,6 +158,10 @@ function saveState() {
   } catch(e) {
     console.warn('Não foi possível salvar o estado:', e);
   }
+  // Fire-and-forget API save when logged in (Req 4.4)
+  if (typeof saveStateToAPI === 'function' && typeof getAccessToken === 'function') {
+    saveStateToAPI().catch(() => {}); // errors handled inside saveStateToAPI
+  }
 }
 
 function loadState() {
@@ -549,6 +553,11 @@ function renderDrawResults(){
       <span class="rc-player">${p.player}</span>
     </div>`;
   }).join('');
+  
+  // Render player-link inputs when logged in (Req 6.1)
+  if (typeof renderPlayerLinkInputs === 'function') {
+    setTimeout(renderPlayerLinkInputs, 100); // slight delay to let DOM settle
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -2156,3 +2165,621 @@ function __applyState(s){
   goToPage(s.currentPage||'players');
 }
 
+
+// ═══════════════════════════════════════════════
+// AUTH UI
+// ═══════════════════════════════════════════════
+
+let _currentAuthTab = 'login';
+
+function initAuth() {
+  const token = getAccessToken();
+  const authBar = document.getElementById('auth-bar');
+  if (authBar) authBar.style.display = 'flex';
+
+  if (token) {
+    document.getElementById('auth-login-btn').style.display = 'none';
+    document.getElementById('auth-logout-btn').style.display = '';
+    const profileBtn = document.getElementById('auth-profile-btn');
+    if (profileBtn) profileBtn.style.display = '';
+    const name = localStorage.getItem('sortear_display_name');
+    if (name) document.getElementById('auth-user-name').textContent = '👤 ' + name;
+    // Load championships from API when logged in
+    if (typeof loadChampionshipsFromAPI === 'function') {
+      loadChampionshipsFromAPI().catch(() => {});
+    }
+  } else {
+    document.getElementById('auth-login-btn').style.display = '';
+    document.getElementById('auth-logout-btn').style.display = 'none';
+    document.getElementById('auth-user-name').textContent = '';
+    const profileBtn = document.getElementById('auth-profile-btn');
+    if (profileBtn) profileBtn.style.display = 'none';
+  }
+}
+
+function showAuthModal() {
+  document.getElementById('auth-modal').style.display = 'flex';
+  document.getElementById('auth-error').style.display = 'none';
+  switchAuthTab('login');
+}
+
+function hideAuthModal() {
+  document.getElementById('auth-modal').style.display = 'none';
+}
+
+function switchAuthTab(tab) {
+  _currentAuthTab = tab;
+  document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('tab-login').style.color = tab === 'login' ? '#111' : '#6b7280';
+  document.getElementById('tab-login').style.borderBottomColor = tab === 'login' ? '#2563eb' : 'transparent';
+  document.getElementById('tab-register').style.color = tab === 'register' ? '#111' : '#6b7280';
+  document.getElementById('tab-register').style.borderBottomColor = tab === 'register' ? '#2563eb' : 'transparent';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function showAuthError(message) {
+  const el = document.getElementById('auth-error');
+  el.textContent = message;
+  el.style.display = '';
+}
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { showAuthError('Preencha e-mail e senha.'); return; }
+  try {
+    const data = await apiCall('POST', '/auth/login', { email, password }, false);
+    setTokens(data.accessToken, data.refreshToken);
+    // Store display name (fetch profile)
+    try {
+      const profile = await apiCall('GET', '/profile/me', null, true);
+      if (profile && profile.displayName) localStorage.setItem('sortear_display_name', profile.displayName);
+    } catch (_) {}
+    hideAuthModal();
+    initAuth();
+    if (typeof checkMigrationOffer === 'function') checkMigrationOffer();
+  } catch (err) {
+    const code = err?.error?.code;
+    if (code === 'AUTHENTICATION_FAILED') showAuthError('E-mail ou senha incorretos.');
+    else if (code === 'RATE_LIMIT_EMAIL' || code === 'RATE_LIMIT_IP') showAuthError('Muitas tentativas. Tente novamente em 15 minutos.');
+    else showAuthError('Erro ao entrar. Tente novamente.');
+  }
+}
+
+async function handleRegister() {
+  const displayName = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  if (!displayName || !email || !password) { showAuthError('Preencha todos os campos.'); return; }
+  try {
+    const data = await apiCall('POST', '/auth/register', { displayName, email, password }, false);
+    setTokens(data.accessToken, data.refreshToken);
+    localStorage.setItem('sortear_display_name', displayName);
+    hideAuthModal();
+    initAuth();
+    if (typeof checkMigrationOffer === 'function') checkMigrationOffer();
+  } catch (err) {
+    const code = err?.error?.code;
+    if (code === 'EMAIL_ALREADY_EXISTS') showAuthError('Este e-mail já está cadastrado.');
+    else if (code === 'VALIDATION_ERROR') showAuthError(err?.error?.message || 'Dados inválidos. Verifique os campos.');
+    else showAuthError('Erro ao criar conta. Tente novamente.');
+  }
+}
+
+async function handleLogout() {
+  const refreshToken = localStorage.getItem('sortear_refresh_token');
+  try { await apiCall('POST', '/auth/logout', { refreshToken }, true); } catch (_) {}
+  clearTokens();
+  localStorage.removeItem('sortear_display_name');
+  initAuth();
+}
+
+// Initialize auth on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+  initAuth();
+}
+
+// ═══════════════════════════════════════════════
+// CHAMPIONSHIP PERSISTENCE (API)
+// Requirements: 4.2, 4.3, 4.4, 4.5
+// ═══════════════════════════════════════════════
+
+/** Tracks the server-side championship ID for the current session */
+window._currentChampionshipId = null;
+
+/**
+ * Shows a dismissable error banner for DB errors (Req 4.3, 4.5)
+ * @param {string} code - Error code (DB_LOAD_ERROR or DB_SAVE_ERROR)
+ * @param {string} message - User-facing message in Portuguese
+ */
+function showApiError(code, message) {
+  const existing = document.getElementById('api-error-banner');
+  if (existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'api-error-banner';
+  banner.style.cssText = [
+    'position:fixed', 'bottom:16px', 'left:50%', 'transform:translateX(-50%)',
+    'background:#dc2626', 'color:white', 'padding:10px 20px',
+    'border-radius:8px', 'z-index:9999', 'font-size:13px', 'font-weight:500',
+    'box-shadow:0 4px 12px rgba(0,0,0,0.2)', 'display:flex', 'align-items:center', 'gap:12px'
+  ].join(';');
+  const msg = document.createElement('span');
+  msg.textContent = `⚠ ${message}`;
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.style.cssText = 'background:none;border:none;color:white;cursor:pointer;font-size:18px;line-height:1;padding:0';
+  closeBtn.onclick = () => banner.remove();
+  banner.appendChild(msg);
+  banner.appendChild(closeBtn);
+  document.body.appendChild(banner);
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, 6000);
+}
+
+/**
+ * Shows an info banner (e.g. loaded championships from server)
+ */
+function showApiInfo(message) {
+  const existing = document.getElementById('api-info-banner');
+  if (existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'api-info-banner';
+  banner.style.cssText = [
+    'position:fixed', 'bottom:16px', 'left:50%', 'transform:translateX(-50%)',
+    'background:#2563eb', 'color:white', 'padding:10px 20px',
+    'border-radius:8px', 'z-index:9999', 'font-size:13px', 'font-weight:500',
+    'box-shadow:0 4px 12px rgba(0,0,0,0.2)', 'display:flex', 'align-items:center', 'gap:12px'
+  ].join(';');
+  const msg = document.createElement('span');
+  msg.textContent = `ℹ ${message}`;
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '×';
+  closeBtn.style.cssText = 'background:none;border:none;color:white;cursor:pointer;font-size:18px;line-height:1;padding:0';
+  closeBtn.onclick = () => banner.remove();
+  banner.appendChild(msg);
+  banner.appendChild(closeBtn);
+  document.body.appendChild(banner);
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, 5000);
+}
+
+/**
+ * Saves the current championship state to the API (fire-and-forget).
+ * Falls back silently if not logged in.
+ * Req 4.4: persist in ≤ 2 s after user action
+ * Req 4.5: show DB_SAVE_ERROR on failure, preserve previous state
+ */
+async function saveStateToAPI() {
+  if (!getAccessToken()) return; // not logged in — localStorage already saved by saveState()
+  try {
+    const state = __collectState();
+    if (window._currentChampionshipId) {
+      // PATCH existing championship — Req 4.4
+      await apiCall('PATCH', `/championships/${window._currentChampionshipId}`, {
+        data: state,
+        status: tournament.champion ? 'finished' : 'ongoing',
+        champion: tournament.champion || undefined
+      });
+    } else {
+      // POST new championship — Req 4.1
+      const titleDate = new Date().toLocaleDateString('pt-BR');
+      const created = await apiCall('POST', '/championships', {
+        title: `Campeonato ${titleDate}`,
+        format: tournament.format || 'groups-knockout',
+        data: state
+      });
+      if (created && created.id) {
+        window._currentChampionshipId = created.id;
+      }
+    }
+  } catch (err) {
+    // Req 4.5: notify user, do not modify localStorage state
+    showApiError('DB_SAVE_ERROR', 'Não foi possível salvar o campeonato no servidor. Suas alterações estão salvas localmente.');
+  }
+}
+
+/**
+ * Loads championships from the API when user is logged in.
+ * Req 4.2: load from server replacing localStorage behavior
+ * Req 4.3: show DB_LOAD_ERROR on failure, do not show stale data
+ */
+async function loadChampionshipsFromAPI() {
+  if (!getAccessToken()) return; // not logged in
+  try {
+    const result = await apiCall('GET', '/championships');
+    if (result && result.items && result.items.length > 0) {
+      showApiInfo(`${result.items.length} campeonato(s) salvo(s) no servidor. Retome um campeonato pelo menu.`);
+    }
+  } catch (err) {
+    // Req 4.3: show error, do NOT fall back to localStorage
+    showApiError('DB_LOAD_ERROR', 'Não foi possível carregar os campeonatos do servidor.');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// PLAYER LINK UI
+// Requirements: 6.1, 6.3, 6.6, 6.7
+// ═══════════════════════════════════════════════
+
+/** In-memory friend list cache */
+let _friendsCache = null;
+
+/**
+ * Fetches the friend list from the API (cached per session).
+ * @returns {Promise<Array>} Array of { id, displayName, email } objects
+ */
+async function getFriendsList() {
+  if (!getAccessToken()) return [];
+  if (_friendsCache) return _friendsCache;
+  try {
+    const result = await apiCall('GET', '/friends');
+    _friendsCache = result?.friends || [];
+    return _friendsCache;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Renders a player-link email input row for each player in the draw results.
+ * Called after the draw is rendered (when user is logged in).
+ * Req 6.1: display optional email field per player
+ */
+async function renderPlayerLinkInputs() {
+  if (!getAccessToken() || !window._currentChampionshipId) return;
+  
+  const friends = await getFriendsList();
+  const cards = document.querySelectorAll('#draw-results-grid .result-card');
+  if (!cards.length) return;
+  
+  cards.forEach((card, i) => {
+    // Avoid adding duplicate link inputs
+    if (card.querySelector('.player-link-row')) return;
+    
+    const pair = drawnPairs[i];
+    if (!pair) return;
+    
+    const row = document.createElement('div');
+    row.className = 'player-link-row';
+    row.style.cssText = 'margin-top:8px;display:flex;flex-direction:column;gap:4px';
+    
+    // Email input with datalist for friend autocomplete
+    const inputId = `player-link-input-${i}`;
+    const listId = `player-link-list-${i}`;
+    
+    const label = document.createElement('label');
+    label.style.cssText = 'font-size:11px;color:#6b7280;letter-spacing:.03em';
+    label.textContent = '🔗 Vincular amigo (opcional)';
+    label.htmlFor = inputId;
+    
+    const input = document.createElement('input');
+    input.type = 'email';
+    input.id = inputId;
+    input.placeholder = 'E-mail do amigo...';
+    input.list = listId;
+    input.style.cssText = 'width:100%;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;box-sizing:border-box';
+    
+    // Datalist for friend autocomplete
+    const datalist = document.createElement('datalist');
+    datalist.id = listId;
+    friends.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.email || f.displayName;
+      datalist.appendChild(opt);
+    });
+    
+    const errorEl = document.createElement('span');
+    errorEl.className = 'player-link-error';
+    errorEl.style.cssText = 'font-size:11px;color:#dc2626;display:none';
+    
+    const linkBtn = document.createElement('button');
+    linkBtn.textContent = 'Vincular';
+    linkBtn.className = 'btn btn-sm';
+    linkBtn.style.cssText = 'margin-top:2px;font-size:11px;padding:4px 10px';
+    linkBtn.onclick = async () => {
+      const email = input.value.trim();
+      if (!email) return;
+      errorEl.style.display = 'none';
+      linkBtn.disabled = true;
+      try {
+        await apiCall('POST', `/championships/${window._currentChampionshipId}/links`, {
+          playerName: pair.player,
+          linkedUserEmail: email
+        });
+        linkBtn.textContent = '✓ Vinculado';
+        linkBtn.style.background = '#dcfce7';
+        linkBtn.style.color = '#15803d';
+        input.disabled = true;
+      } catch (err) {
+        linkBtn.disabled = false;
+        const code = err?.error?.code;
+        if (code === 'CONFLICT') errorEl.textContent = 'Este jogador ou usuário já está vinculado.';
+        else if (code === 'FRIEND_NOT_FOUND') errorEl.textContent = 'E-mail não pertence a um amigo.';
+        else if (code === 'AUTHORIZATION_FAILED') errorEl.textContent = 'Sem permissão para vincular.';
+        else errorEl.textContent = 'Erro ao vincular. Tente novamente.';
+        errorEl.style.display = '';
+      }
+    };
+    
+    row.appendChild(label);
+    row.appendChild(input);
+    row.appendChild(datalist);
+    row.appendChild(errorEl);
+    row.appendChild(linkBtn);
+    card.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// MIGRATION PROMPT
+// Requirements: 4.6, 4.7, 8.1, 8.3, 8.4, 8.6
+// ═══════════════════════════════════════════════
+
+const MIGRATION_REFUSED_KEY = 'sorte_ar_migration_refused';
+
+/**
+ * Checks if there is local data to migrate and no refusal flag.
+ * Shows the migration modal if conditions are met.
+ * Req 4.6, 8.1
+ */
+function checkMigrationOffer() {
+  if (!getAccessToken()) return; // only for logged-in users
+  const hasLocalData = !!localStorage.getItem('sorte_ar_state_v1');
+  const hasRefused = !!localStorage.getItem(MIGRATION_REFUSED_KEY);
+  if (hasLocalData && !hasRefused) {
+    const modal = document.getElementById('migration-modal');
+    if (modal) modal.style.display = 'flex';
+  }
+}
+
+/**
+ * User confirmed migration — calls POST /api/championships/migrate.
+ * Req 8.3, 8.4
+ */
+async function handleMigrationConfirm() {
+  const statusEl = document.getElementById('migration-status');
+  const confirmBtn = document.getElementById('migration-confirm-btn');
+
+  // Show loading state
+  if (confirmBtn) confirmBtn.disabled = true;
+  if (statusEl) {
+    statusEl.style.display = '';
+    statusEl.style.background = '#eff6ff';
+    statusEl.style.color = '#1d4ed8';
+    statusEl.textContent = '⏳ Migrando campeonatos...';
+  }
+
+  try {
+    // Build migration payload from localStorage state
+    const raw = localStorage.getItem('sorte_ar_state_v1');
+    if (!raw) {
+      if (statusEl) { statusEl.style.background = '#f0fdf4'; statusEl.style.color = '#15803d'; statusEl.textContent = '✓ Nenhum dado para migrar.'; }
+      setTimeout(() => { const m = document.getElementById('migration-modal'); if (m) m.style.display = 'none'; }, 2000);
+      return;
+    }
+
+    // Create a single championship entry from current localStorage state
+    const state = JSON.parse(raw);
+    const championships = [{
+      localId: 'local-' + Date.now(),
+      title: `Campeonato importado (${new Date().toLocaleDateString('pt-BR')})`,
+      format: state.tournament?.format || 'groups-knockout',
+      data: state
+    }];
+
+    const result = await apiCall('POST', '/championships/migrate', { championships });
+
+    // Success — Req 8.3: clear localStorage on successful migration
+    localStorage.removeItem('sorte_ar_state_v1');
+    window._currentChampionshipId = null;
+
+    if (statusEl) {
+      statusEl.style.background = '#f0fdf4';
+      statusEl.style.color = '#15803d';
+      const migrated = result?.migrated || 0;
+      const skipped = result?.skipped || 0;
+      statusEl.textContent = `✓ ${migrated} campeonato(s) migrado(s)${skipped > 0 ? `, ${skipped} já existia(m)` : ''}.`;
+    }
+
+    setTimeout(() => {
+      const m = document.getElementById('migration-modal');
+      if (m) m.style.display = 'none';
+    }, 2500);
+
+  } catch (err) {
+    // Req 8.4: on failure, keep localStorage intact, show retry message
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (statusEl) {
+      statusEl.style.background = '#fef2f2';
+      statusEl.style.color = '#dc2626';
+      statusEl.textContent = '⚠ Falha na migração. Seus dados locais foram preservados. Tente novamente.';
+    }
+  }
+}
+
+/**
+ * User declined migration — store refusal flag.
+ * Req 8.6
+ */
+function handleMigrationDecline() {
+  localStorage.setItem(MIGRATION_REFUSED_KEY, '1');
+  const modal = document.getElementById('migration-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════
+// PROFILE PAGE
+// Requirements: 3.1, 3.4, 5.1, 5.9, 7.1, 7.2, 7.3, 7.4, 7.7
+// ═══════════════════════════════════════════════
+
+/**
+ * Opens and renders the profile page for the current logged-in user.
+ */
+async function openProfilePage() {
+  if (!getAccessToken()) { showAuthModal(); return; }
+  goToPage('profile');
+  await loadProfileData();
+}
+
+/**
+ * Loads all profile data: profile info, feed, pending requests, friend list.
+ */
+async function loadProfileData() {
+  await Promise.allSettled([
+    loadMyProfile(),
+    loadMyFeed(),
+    loadPendingRequests(),
+    loadFriendsList()
+  ]);
+}
+
+async function loadMyProfile() {
+  try {
+    // Use the public profile endpoint — need userId first from token
+    // We store displayName in localStorage after login; use it directly
+    const name = localStorage.getItem('sortear_display_name') || '';
+    document.getElementById('profile-display-name').textContent = name || 'Meu Perfil';
+    // Try to get full profile from API
+    const result = await apiCall('GET', '/profile/me');
+    if (result) {
+      if (result.displayName) document.getElementById('profile-display-name').textContent = result.displayName;
+      if (result.createdAt) {
+        document.getElementById('profile-joined').textContent = 'Desde ' + new Date(result.createdAt).toLocaleDateString('pt-BR');
+      }
+      if (result.avatarUrl) {
+        const avatar = document.getElementById('profile-avatar');
+        avatar.innerHTML = `<img src="${result.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+      }
+      if (result.stats) {
+        document.getElementById('profile-stat-player').textContent = result.stats.championshipsAsPlayer ?? '—';
+        document.getElementById('profile-stat-wins').textContent = result.stats.wins ?? '—';
+        document.getElementById('profile-stat-runnerup').textContent = result.stats.runnerUp ?? '—';
+      }
+    }
+  } catch (_) {}
+}
+
+async function loadMyFeed() {
+  const feedEl = document.getElementById('profile-feed');
+  try {
+    const feed = await apiCall('GET', '/championships/feed');
+    if (!Array.isArray(feed) || feed.length === 0) {
+      feedEl.innerHTML = '<span style="font-size:13px;color:#9ca3af">Nenhum campeonato ainda.</span>';
+      return;
+    }
+    feedEl.innerHTML = feed.map(item => {
+      const statusBadge = item.status === 'finished'
+        ? `<span style="font-size:11px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:99px">Finalizado</span>`
+        : `<span style="font-size:11px;background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:99px">Em andamento</span>`;
+      const champion = item.champion ? `<div style="font-size:12px;color:#6b7280">🏆 Campeão: <strong>${item.champion}</strong></div>` : '';
+      const phase = item.currentPhase && item.status !== 'finished' ? `<div style="font-size:12px;color:#6b7280">📍 Fase atual: ${item.currentPhase}</div>` : '';
+      const userResult = item.finalPosition ? `<div style="font-size:12px;color:#6b7280">🎯 Sua posição: ${item.finalPosition}º</div>` : '';
+      const updated = new Date(item.updatedAt).toLocaleDateString('pt-BR');
+      return `<div style="padding:10px;border:1px solid #e5e7eb;border-radius:8px">
+        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:4px">
+          <span style="font-size:14px;font-weight:600">${item.title}</span>
+          ${statusBadge}
+        </div>
+        ${champion}${phase}${userResult}
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px">Atualizado em ${updated} · ${item.userRole === 'creator' ? 'Criador' : 'Jogador'}</div>
+      </div>`;
+    }).join('');
+  } catch (_) {
+    feedEl.innerHTML = '<span style="font-size:13px;color:#dc2626">Não foi possível carregar o feed.</span>';
+  }
+}
+
+async function loadPendingRequests() {
+  const el = document.getElementById('profile-pending-requests');
+  try {
+    const result = await apiCall('GET', '/friends/requests/pending');
+    const requests = result?.requests || [];
+    if (requests.length === 0) {
+      el.innerHTML = '<span style="font-size:13px;color:#9ca3af">Nenhuma solicitação pendente.</span>';
+      return;
+    }
+    el.innerHTML = requests.map(req => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border:1px solid #e5e7eb;border-radius:8px">
+        <span style="font-size:13px;font-weight:500">${req.fromUser || req.id}</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" style="background:#dcfce7;color:#15803d" onclick="acceptFriendRequest('${req.id}', this)">Aceitar</button>
+          <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626" onclick="rejectFriendRequest('${req.id}', this)">Recusar</button>
+        </div>
+      </div>`).join('');
+  } catch (_) {
+    el.innerHTML = '<span style="font-size:13px;color:#dc2626">Não foi possível carregar solicitações.</span>';
+  }
+}
+
+async function loadFriendsList() {
+  const el = document.getElementById('profile-friends-list');
+  try {
+    const result = await apiCall('GET', '/friends');
+    const friends = result?.friends || [];
+    if (friends.length === 0) {
+      el.innerHTML = '<span style="font-size:13px;color:#9ca3af">Nenhum amigo ainda.</span>';
+      return;
+    }
+    el.innerHTML = friends.map(f => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border:1px solid #e5e7eb;border-radius:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          ${f.avatarUrl ? `<img src="${f.avatarUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover"/>` : `<div style="width:32px;height:32px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>`}
+          <span style="font-size:13px;font-weight:500">${f.displayName}</span>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="removeFriendById('${f.id}', this)">Remover</button>
+      </div>`).join('');
+  } catch (_) {
+    el.innerHTML = '<span style="font-size:13px;color:#dc2626">Não foi possível carregar amigos.</span>';
+  }
+}
+
+async function sendFriendRequest() {
+  const input = document.getElementById('friend-email-input');
+  const statusEl = document.getElementById('friend-request-status');
+  const email = input.value.trim();
+  if (!email) return;
+  statusEl.style.display = '';
+  statusEl.style.color = '#1d4ed8';
+  statusEl.textContent = '⏳ Enviando...';
+  try {
+    await apiCall('POST', '/friends/requests', { email });
+    input.value = '';
+    statusEl.style.color = '#15803d';
+    statusEl.textContent = '✓ Solicitação enviada!';
+    setTimeout(() => { statusEl.style.display = 'none'; }, 3000);
+  } catch (err) {
+    const code = err?.error?.code;
+    statusEl.style.color = '#dc2626';
+    if (code === 'NOT_FOUND') statusEl.textContent = 'E-mail não encontrado.';
+    else if (code === 'CONFLICT') statusEl.textContent = 'Solicitação já enviada ou já são amigos.';
+    else if (code === 'VALIDATION_ERROR') statusEl.textContent = 'Não é possível enviar para si mesmo.';
+    else statusEl.textContent = 'Erro ao enviar solicitação.';
+  }
+}
+
+async function acceptFriendRequest(requestId, btn) {
+  btn.disabled = true;
+  try {
+    await apiCall('POST', `/friends/requests/${requestId}/accept`);
+    await loadPendingRequests();
+    await loadFriendsList();
+  } catch (_) { btn.disabled = false; }
+}
+
+async function rejectFriendRequest(requestId, btn) {
+  btn.disabled = true;
+  try {
+    await apiCall('POST', `/friends/requests/${requestId}/reject`);
+    await loadPendingRequests();
+  } catch (_) { btn.disabled = false; }
+}
+
+async function removeFriendById(friendId, btn) {
+  btn.disabled = true;
+  try {
+    await apiCall('DELETE', `/friends/${friendId}`);
+    await loadFriendsList();
+    _friendsCache = null; // invalidate cache
+  } catch (_) { btn.disabled = false; }
+}
