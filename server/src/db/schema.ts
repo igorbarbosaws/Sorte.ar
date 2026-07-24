@@ -9,6 +9,7 @@ import {
   unique,
   check,
   primaryKey,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -24,6 +25,9 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   displayName: varchar("display_name", { length: 50 }).notNull(),
   avatarUrl: text("avatar_url"),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  verificationToken: text("verification_token"),
+  verificationExpiresAt: timestamptz("verification_expires_at"),
   createdAt: timestamptz("created_at").notNull().default(sql`now()`),
   updatedAt: timestamptz("updated_at").notNull().default(sql`now()`),
 });

@@ -2173,6 +2173,9 @@ function __applyState(s){
 let _currentAuthTab = 'login';
 
 function initAuth() {
+  // Verificar se o usuário acabou de confirmar o email via link
+  checkVerificationParam();
+
   const token = getAccessToken();
   const authBar = document.getElementById('auth-bar');
   if (authBar) authBar.style.display = 'flex';
@@ -2220,9 +2223,120 @@ function switchAuthTab(tab) {
 
 function showAuthError(message) {
   const el = document.getElementById('auth-error');
-  el.textContent = message;
+  el.innerHTML = message;   // innerHTML para suportar o link de reenvio
   el.style.display = '';
 }
+
+/**
+ * Mostra tela de "verifique seu email" dentro do modal de auth.
+ */
+function showVerificationPending(email) {
+  const modal = document.getElementById('auth-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+
+  // Substituir conteúdo do card pelo estado de verificação pendente
+  const card = modal.querySelector('div[style*="background:white"]');
+  if (!card) return;
+
+  card.innerHTML = `
+    <div style="text-align:center;padding:32px 24px">
+      <div style="font-size:48px;margin-bottom:16px">📧</div>
+      <h2 style="margin:0 0 8px;color:#111827;font-size:18px;font-weight:700">Verifique seu e-mail</h2>
+      <p style="margin:0 0 20px;color:#6b7280;font-size:14px;line-height:1.6">
+        Enviamos um link de confirmação para<br/>
+        <strong style="color:#111827">${email}</strong><br/>
+        Clique no link para ativar sua conta.
+      </p>
+      <p style="margin:0 0 20px;color:#9ca3af;font-size:12px">
+        Não recebeu? Verifique a pasta de spam ou reenvie abaixo.
+      </p>
+      <button onclick="handleResendVerification(event,'${email.replace(/'/g, "\\'")}')"
+              id="resend-btn"
+              style="margin-bottom:12px;width:100%;padding:10px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;font-size:14px;color:#374151">
+        🔁 Reenviar e-mail de confirmação
+      </button>
+      <button onclick="hideAuthModal()"
+              style="width:100%;padding:8px;border:none;background:none;cursor:pointer;color:#9ca3af;font-size:13px">
+        Fechar
+      </button>
+    </div>`;
+}
+
+/**
+ * Reenvia o e-mail de verificação.
+ */
+async function handleResendVerification(event, email) {
+  if (event) event.preventDefault();
+  const btn = document.getElementById('resend-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  try {
+    await apiCall('POST', '/auth/resend-verification', { email }, false);
+    if (btn) { btn.textContent = '✅ E-mail reenviado!'; }
+  } catch (_) {
+    if (btn) { btn.disabled = false; btn.textContent = '🔁 Reenviar e-mail de confirmação'; }
+  }
+}
+
+/**
+ * Verifica o parâmetro ?verified= na URL ao carregar a página
+ * e exibe um toast informando o resultado.
+ */
+function checkVerificationParam() {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('verified');
+  if (!status) return;
+
+  // Limpar o parâmetro da URL sem recarregar
+  const url = new URL(window.location.href);
+  url.searchParams.delete('verified');
+  window.history.replaceState({}, '', url.toString());
+
+  if (status === '1') {
+    showToast('✅ E-mail confirmado! Faça login para continuar.', 'success');
+    // Abrir modal de login automaticamente
+    setTimeout(() => { showAuthModal(); switchAuthTab('login'); }, 600);
+  } else if (status === 'expired') {
+    showToast('⏰ Link expirado. Faça login e solicite um novo.', 'warning');
+    setTimeout(() => { showAuthModal(); switchAuthTab('login'); }, 600);
+  } else {
+    showToast('❌ Link de verificação inválido.', 'error');
+  }
+}
+
+/**
+ * Exibe um toast de feedback no topo da tela.
+ */
+function showToast(message, type = 'info') {
+  const existing = document.getElementById('sortear-toast');
+  if (existing) existing.remove();
+
+  const colors = {
+    success: { bg: '#16a34a', text: 'white' },
+    warning: { bg: '#d97706', text: 'white' },
+    error:   { bg: '#dc2626', text: 'white' },
+    info:    { bg: '#2563eb', text: 'white' },
+  };
+  const c = colors[type] || colors.info;
+
+  const toast = document.createElement('div');
+  toast.id = 'sortear-toast';
+  toast.style.cssText = [
+    'position:fixed', 'top:70px', 'left:50%', 'transform:translateX(-50%)',
+    `background:${c.bg}`, `color:${c.text}`, 'padding:12px 24px',
+    'border-radius:10px', 'z-index:9999', 'font-size:14px', 'font-weight:600',
+    'box-shadow:0 4px 16px rgba(0,0,0,0.15)', 'pointer-events:none',
+    'transition:opacity .3s'
+  ].join(';');
+  toast.textContent = message;
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
 
 async function handleLogin() {
   const email = document.getElementById('login-email').value.trim();
@@ -2231,7 +2345,6 @@ async function handleLogin() {
   try {
     const data = await apiCall('POST', '/auth/login', { email, password }, false);
     setTokens(data.accessToken, data.refreshToken);
-    // Store display name (fetch profile)
     try {
       const profile = await apiCall('GET', '/profile/me', null, true);
       if (profile && profile.displayName) localStorage.setItem('sortear_display_name', profile.displayName);
@@ -2241,9 +2354,16 @@ async function handleLogin() {
     if (typeof checkMigrationOffer === 'function') checkMigrationOffer();
   } catch (err) {
     const code = err?.error?.code;
-    if (code === 'AUTHENTICATION_FAILED') showAuthError('E-mail ou senha incorretos.');
-    else if (code === 'RATE_LIMIT_EMAIL' || code === 'RATE_LIMIT_IP') showAuthError('Muitas tentativas. Tente novamente em 15 minutos.');
-    else showAuthError('Erro ao entrar. Tente novamente.');
+    if (code === 'EMAIL_NOT_VERIFIED') {
+      // Show resend option inline
+      showAuthError('E-mail não confirmado. <a href="#" onclick="handleResendVerification(event, \'' + email.replace(/'/g, "\\'") + '\')" style="color:#2563eb;text-decoration:underline">Reenviar link de confirmação</a>');
+    } else if (code === 'AUTHENTICATION_FAILED') {
+      showAuthError('E-mail ou senha incorretos.');
+    } else if (code === 'RATE_LIMIT_EMAIL' || code === 'RATE_LIMIT_IP') {
+      showAuthError('Muitas tentativas. Tente novamente em 15 minutos.');
+    } else {
+      showAuthError('Erro ao entrar. Tente novamente.');
+    }
   }
 }
 
@@ -2253,12 +2373,9 @@ async function handleRegister() {
   const password = document.getElementById('reg-password').value;
   if (!displayName || !email || !password) { showAuthError('Preencha todos os campos.'); return; }
   try {
-    const data = await apiCall('POST', '/auth/register', { displayName, email, password }, false);
-    setTokens(data.accessToken, data.refreshToken);
-    localStorage.setItem('sortear_display_name', displayName);
-    hideAuthModal();
-    initAuth();
-    if (typeof checkMigrationOffer === 'function') checkMigrationOffer();
+    await apiCall('POST', '/auth/register', { displayName, email, password }, false);
+    // Don't log the user in — show "check your email" screen instead
+    showVerificationPending(email);
   } catch (err) {
     const code = err?.error?.code;
     if (code === 'EMAIL_ALREADY_EXISTS') showAuthError('Este e-mail já está cadastrado.');

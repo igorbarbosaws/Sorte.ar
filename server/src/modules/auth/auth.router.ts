@@ -7,21 +7,15 @@ import {
 } from "../../middleware/rate-limit.js";
 import { db } from "../../db/index.js";
 
-// ---------------------------------------------------------------------------
-// Singleton AuthService backed by the shared DB pool
-// ---------------------------------------------------------------------------
-
 const authService = new AuthService(db);
-
-// ---------------------------------------------------------------------------
-// Error code → HTTP status mapping
-// ---------------------------------------------------------------------------
 
 const ERROR_STATUS: Record<string, number> = {
   VALIDATION_ERROR: 400,
   EMAIL_ALREADY_EXISTS: 409,
   AUTHENTICATION_FAILED: 401,
-  TOKEN_EXPIRED: 401,
+  EMAIL_NOT_VERIFIED: 403,
+  INVALID_TOKEN: 400,
+  TOKEN_EXPIRED: 400,
 };
 
 function handleError(err: unknown, res: Response): void {
@@ -36,17 +30,9 @@ function handleError(err: unknown, res: Response): void {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Router
-// ---------------------------------------------------------------------------
-
 export const authRouter = Router();
 
-/**
- * POST /api/auth/register
- * Creates a new user account and returns an initial session pair.
- * Requirement 1.1
- */
+/** POST /api/auth/register */
 authRouter.post("/register", async (req: Request, res: Response) => {
   try {
     const { accessToken, refreshToken } = await authService.register(req.body as RegisterInput);
@@ -56,11 +42,7 @@ authRouter.post("/register", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/auth/login
- * Rate-limited by email and IP; returns a session pair on success.
- * Requirements 2.1, 2.3, 9.5
- */
+/** POST /api/auth/login */
 authRouter.post(
   "/login",
   loginEmailRateLimit,
@@ -78,11 +60,7 @@ authRouter.post(
   },
 );
 
-/**
- * POST /api/auth/logout
- * Revokes the supplied refresh token.
- * Requirement 2.4
- */
+/** POST /api/auth/logout */
 authRouter.post("/logout", async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body as { refreshToken?: string };
@@ -93,16 +71,52 @@ authRouter.post("/logout", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/auth/refresh
- * Exchanges a valid refresh token for a new access token.
- * Requirements 2.6, 2.7
- */
+/** POST /api/auth/refresh */
 authRouter.post("/refresh", async (req: Request, res: Response) => {
   try {
     const { refreshToken } = req.body as { refreshToken?: string };
     const accessToken = await authService.refreshSession(refreshToken ?? "");
     res.status(200).json({ accessToken });
+  } catch (err) {
+    handleError(err, res);
+  }
+});
+
+/**
+ * GET /api/auth/verify-email?token=xxx
+ * Called when user clicks the link in the verification email.
+ * Redirects to the frontend with a success or error flag.
+ */
+authRouter.get("/verify-email", async (req: Request, res: Response) => {
+  const token = req.query["token"] as string | undefined;
+  const appUrl = process.env["APP_URL"] ?? "https://sorte-ar.vercel.app";
+
+  try {
+    await authService.verifyEmail(token ?? "");
+    res.redirect(`${appUrl}?verified=1`);
+  } catch (err) {
+    if (err instanceof AppError && err.code === "TOKEN_EXPIRED") {
+      res.redirect(`${appUrl}?verified=expired`);
+    } else {
+      res.redirect(`${appUrl}?verified=error`);
+    }
+  }
+});
+
+/**
+ * POST /api/auth/resend-verification
+ * Sends a new verification email to the given address.
+ */
+authRouter.post("/resend-verification", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Email is required" } });
+      return;
+    }
+    await authService.resendVerification(email);
+    // Always 200 — don't leak whether the email exists
+    res.status(200).json({ message: "If the email exists and is unverified, a new link has been sent." });
   } catch (err) {
     handleError(err, res);
   }

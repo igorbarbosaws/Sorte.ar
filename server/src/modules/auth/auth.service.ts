@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import { eq, and, isNull } from "drizzle-orm";
+import { randomBytes } from "crypto";
 import type { Db } from "../../db/index.js";
 import { users, refreshTokens } from "../../db/schema.js";
 import {
@@ -7,6 +8,7 @@ import {
   generateRefreshToken,
   hashRefreshToken,
 } from "../../lib/jwt.js";
+import { sendVerificationEmail } from "../../lib/email.js";
 import {
   registerSchema,
   loginSchema,
@@ -42,6 +44,12 @@ export class AppError extends Error {
 
 const BCRYPT_COST = 12;
 const REFRESH_TOKEN_TTL_DAYS = 7;
+const VERIFICATION_TOKEN_TTL_HOURS = 24;
+
+/** Generates a secure random hex token for email verification. */
+function generateVerificationToken(): string {
+  return randomBytes(32).toString("hex");
+}
 
 export class AuthService {
   constructor(private readonly db: Db) {}
@@ -77,17 +85,36 @@ export class AuthService {
     // 3. Hash password — Requirement 1.6
     const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
 
-    // 4. Insert user row
+    // 4. Insert user row — unverified by default
+    const verificationToken = generateVerificationToken();
+    const verificationExpiresAt = new Date();
+    verificationExpiresAt.setHours(
+      verificationExpiresAt.getHours() + VERIFICATION_TOKEN_TTL_HOURS
+    );
+
     const [newUser] = await this.db
       .insert(users)
-      .values({ email, passwordHash, displayName })
+      .values({
+        email,
+        passwordHash,
+        displayName,
+        emailVerified: false,
+        verificationToken,
+        verificationExpiresAt,
+      })
       .returning({ id: users.id });
 
     if (!newUser) {
       throw new AppError("DB_SAVE_ERROR", "Failed to create user");
     }
 
-    // 5. Generate and persist refresh token — Requirement 2.6
+    // 5. Send verification email (non-blocking — failure doesn't break registration)
+    sendVerificationEmail(email, displayName, verificationToken).catch((err) => {
+      console.error("[auth] Failed to send verification email:", err);
+    });
+
+    // 6. Return session pair — user is logged in but not yet verified.
+    //    Login will be blocked until email is confirmed.
     const { accessToken, refreshToken } = await this._issueSessionPair(
       newUser.id,
     );
@@ -108,11 +135,12 @@ export class AuthService {
 
     const { email, password } = parsed.data;
 
-    // 2. Find user by email — Requirement 2.1, 2.2
+    // 2. Find user by email
     const [user] = await this.db
       .select({
         id: users.id,
         passwordHash: users.passwordHash,
+        emailVerified: users.emailVerified,
       })
       .from(users)
       .where(eq(users.email, email))
@@ -122,10 +150,18 @@ export class AuthService {
       throw new AppError("AUTHENTICATION_FAILED", "Authentication failed");
     }
 
-    // 3. Compare password — Requirement 2.2 (same generic error)
+    // 3. Compare password
     const passwordMatch = await bcrypt.compare(password, user.passwordHash);
     if (!passwordMatch) {
       throw new AppError("AUTHENTICATION_FAILED", "Authentication failed");
+    }
+
+    // 4. Block login if email not verified
+    if (!user.emailVerified) {
+      throw new AppError(
+        "EMAIL_NOT_VERIFIED",
+        "Please verify your email before logging in"
+      );
     }
 
     // 4. Issue session pair
@@ -134,6 +170,81 @@ export class AuthService {
     );
 
     return { accessToken, refreshToken };
+  }
+
+  // -------------------------------------------------------------------------
+  // verifyEmail
+  // -------------------------------------------------------------------------
+  async verifyEmail(token: string): Promise<void> {
+    if (!token) {
+      throw new AppError("INVALID_TOKEN", "Verification token is required");
+    }
+
+    const [user] = await this.db
+      .select({
+        id: users.id,
+        emailVerified: users.emailVerified,
+        verificationExpiresAt: users.verificationExpiresAt,
+      })
+      .from(users)
+      .where(eq(users.verificationToken, token))
+      .limit(1);
+
+    if (!user) {
+      throw new AppError("INVALID_TOKEN", "Invalid or already used verification token");
+    }
+
+    if (user.emailVerified) {
+      // Already verified — silently succeed
+      return;
+    }
+
+    if (!user.verificationExpiresAt || user.verificationExpiresAt < new Date()) {
+      throw new AppError("TOKEN_EXPIRED", "Verification link has expired. Request a new one.");
+    }
+
+    await this.db
+      .update(users)
+      .set({
+        emailVerified: true,
+        verificationToken: null,
+        verificationExpiresAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, user.id));
+  }
+
+  // -------------------------------------------------------------------------
+  // resendVerification
+  // -------------------------------------------------------------------------
+  async resendVerification(email: string): Promise<void> {
+    const [user] = await this.db
+      .select({
+        id: users.id,
+        displayName: users.displayName,
+        emailVerified: users.emailVerified,
+      })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    // Don't reveal whether the email exists
+    if (!user || user.emailVerified) return;
+
+    const verificationToken = generateVerificationToken();
+    const verificationExpiresAt = new Date();
+    verificationExpiresAt.setHours(
+      verificationExpiresAt.getHours() + VERIFICATION_TOKEN_TTL_HOURS
+    );
+
+    await this.db
+      .update(users)
+      .set({ verificationToken, verificationExpiresAt, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+
+    sendVerificationEmail(email, user.displayName, verificationToken).catch((err) => {
+      console.error("[auth] Failed to resend verification email:", err);
+    });
   }
 
   // -------------------------------------------------------------------------
