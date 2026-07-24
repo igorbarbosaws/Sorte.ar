@@ -1,188 +1,151 @@
 # Sorte.ar — Guia de Deploy
 
-Este documento cobre o deploy completo da aplicação: banco de dados, backend (API) e frontend (static files).
-
----
-
-## Visão geral da arquitetura
+## Arquitetura
 
 ```
 [Usuário]
     │
-    ▼
-[Servidor estático / CDN]   ← index.html + css/ + js/
-    │  (proxy /api/* → backend)
-    ▼
-[Node.js API — Express]     ← server/
+    ├── Frontend (HTML/CSS/JS estático) ──► Vercel
+    │       └── /api/* → proxy reverso ──► Railway (API Node.js)
     │
-    ├── PostgreSQL 16
-    ├── Redis (opcional, rate limiting distribuído)
-    └── Cloudinary (avatares)
+    └── Railway
+            ├── Node.js API (Express)
+            ├── PostgreSQL 16
+            └── Redis (opcional)
 ```
 
-O frontend é vanilla HTML/JS e pode ser servido por **qualquer servidor estático** (Nginx, Vercel, Netlify, GitHub Pages, etc.).  
-A API em Node.js precisa de **um servidor com Node 20+** e acesso ao PostgreSQL.
-
-O `API_BASE` no frontend é `/api`, então o servidor estático deve fazer **proxy reverso** de `/api/*` para o backend.
+O frontend fica no **Vercel** (estático).  
+O backend fica no **Railway** (processo Node.js contínuo + banco).
 
 ---
 
-## Opção 1 — Railway (recomendada para projetos pequenos)
+## Parte 1 — Backend no Railway
 
-Railway provisiona PostgreSQL, Redis e Node.js no mesmo lugar.
+### 1.1 Criar conta e projeto
 
-### 1.1 Banco de dados
+Acesse [railway.app](https://railway.app) e crie uma conta (pode usar o GitHub).  
+Clique em **New Project**.
 
-1. Acesse [railway.app](https://railway.app) e crie um novo projeto.
-2. Adicione um serviço **PostgreSQL** — o Railway gera a `DATABASE_URL` automaticamente.
-3. (Opcional) Adicione um serviço **Redis** — o Railway gera a `REDIS_URL` automaticamente.
+### 1.2 Adicionar PostgreSQL
 
-### 1.2 Backend
+No projeto, clique em **Add a Service → Database → PostgreSQL**.  
+O Railway cria o banco e disponibiliza a variável `DATABASE_URL` automaticamente.
 
-1. Adicione um serviço **GitHub Repo** apontando para este repositório.
-2. Defina o **Root Directory** como `server`.
-3. Configure as variáveis de ambiente (seção abaixo).
-4. O Railway detecta `npm run build` + `npm start` automaticamente via `package.json`.
+### 1.3 Adicionar Redis (opcional)
 
-### 1.3 Frontend
+Clique em **Add a Service → Database → Redis**.  
+Disponibiliza a variável `REDIS_URL`. Sem Redis o rate limiting usa MemoryStore (funciona, mas não é compartilhado entre instâncias).
 
-O frontend é estático e não precisa de build. Opções:
-- **Vercel / Netlify**: faça deploy da pasta raiz (`index.html`, `css/`, `js/`). Configure um rewrite de `/api/*` para a URL pública do backend no Railway.
-- **Mesmo servidor Nginx**: sirva os arquivos estáticos e faça proxy de `/api/*`.
+### 1.4 Adicionar o serviço da API
 
----
+Clique em **Add a Service → GitHub Repo** e selecione o repositório `Sorte.ar`.
 
-## Opção 2 — VPS com Nginx + PM2
+Na aba **Settings** do serviço, configure:
 
-### 2.1 Requisitos
+| Campo | Valor |
+|---|---|
+| **Root Directory** | `server` |
+| **Build Command** | `npm run build` |
+| **Start Command** | `npm run db:migrate && npm start` |
 
-- Ubuntu 22.04 LTS (ou similar)
-- Node.js 20 (`nvm` recomendado)
-- PostgreSQL 16
-- Redis 7 (opcional)
-- Nginx
-- PM2 (`npm i -g pm2`)
+> O `railway.toml` dentro de `server/` já define esses valores automaticamente.
 
-### 2.2 Banco de dados
+### 1.5 Variáveis de ambiente
 
-```bash
-sudo -u postgres psql
-CREATE USER sortear WITH PASSWORD 'senha_forte';
-CREATE DATABASE sorte_ar OWNER sortear;
-\q
-```
+Na aba **Variables** do serviço da API, adicione:
 
-### 2.3 Deploy do backend
+| Variável | Valor |
+|---|---|
+| `DATABASE_URL` | Copie da aba Variables do serviço PostgreSQL |
+| `REDIS_URL` | Copie da aba Variables do serviço Redis (se adicionado) |
+| `JWT_SECRET` | Gere com o comando abaixo |
+| `NODE_ENV` | `production` |
+| `CORS_ORIGIN` | URL do seu projeto no Vercel (ex: `https://sorte-ar.vercel.app`) |
+| `CLOUDINARY_CLOUD_NAME` | Do painel do Cloudinary |
+| `CLOUDINARY_API_KEY` | Do painel do Cloudinary |
+| `CLOUDINARY_API_SECRET` | Do painel do Cloudinary |
 
-```bash
-# Clone e instale dependências
-git clone https://github.com/seu-usuario/Sorte.ar.git /var/www/sortear
-cd /var/www/sortear/server
-
-# Crie o .env
-cp .env.example .env
-nano .env   # preencha todos os valores (veja seção de variáveis)
-
-# Instale e compile
-npm install
-npm run build
-
-# Aplique as migrações
-npm run db:migrate
-
-# Inicie com PM2
-pm2 start dist/app.js --name sortear-api
-pm2 save
-pm2 startup   # siga as instruções para iniciar no boot
-```
-
-### 2.4 Nginx
-
-```nginx
-server {
-    listen 80;
-    server_name seudominio.com;
-
-    # Frontend (arquivos estáticos)
-    root /var/www/sortear;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Proxy para a API
-    location /api/ {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /health {
-        proxy_pass http://127.0.0.1:3000;
-    }
-}
-```
-
-Ative HTTPS com Certbot:
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d seudominio.com
-```
-
----
-
-## Variáveis de ambiente (server/.env)
-
-| Variável | Obrigatória | Descrição |
-|---|---|---|
-| `DATABASE_URL` | **Sim** | `postgresql://user:senha@host:5432/sorte_ar` |
-| `JWT_SECRET` | **Sim** | String aleatória ≥ 64 caracteres |
-| `JWT_ACCESS_EXPIRES_IN` | Não (padrão `60m`) | Expiração do access token |
-| `JWT_REFRESH_EXPIRES_IN` | Não (padrão `7d`) | Expiração do refresh token |
-| `REDIS_URL` | Não | `redis://localhost:6379` — sem isso usa MemoryStore |
-| `CLOUDINARY_CLOUD_NAME` | Sim (para avatares) | Cloud name do Cloudinary |
-| `CLOUDINARY_API_KEY` | Sim (para avatares) | API Key do Cloudinary |
-| `CLOUDINARY_API_SECRET` | Sim (para avatares) | API Secret do Cloudinary |
-| `PORT` | Não (padrão `3000`) | Porta da API |
-| `NODE_ENV` | Não | `production` em produção |
-| `CORS_ORIGIN` | Não | URL do frontend, ex: `https://seudominio.com` |
-
-Gere um JWT_SECRET seguro com:
+**Gerar JWT_SECRET:**
 ```bash
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
----
+### 1.6 Deploy
 
-## Checklist de deploy
+Após configurar as variáveis, clique em **Deploy** (ou o Railway faz automaticamente ao detectar o push).  
+Acompanhe os logs — o start command executa `db:migrate` antes de subir o servidor.
 
-- [ ] PostgreSQL rodando e acessível
-- [ ] `DATABASE_URL` configurado
-- [ ] `JWT_SECRET` gerado e configurado (≥ 64 chars)
-- [ ] Cloudinary configurado (ou avatares desabilitados)
-- [ ] `npm install` executado em `server/`
-- [ ] `npm run build` executado com sucesso
-- [ ] `npm run db:migrate` aplicou as migrações
-- [ ] `CORS_ORIGIN` aponta para o domínio do frontend
-- [ ] `NODE_ENV=production` definido
-- [ ] HTTPS habilitado no domínio público
+### 1.7 Pegar a URL pública da API
+
+Na aba **Settings → Networking**, clique em **Generate Domain**.  
+Vai gerar uma URL como `https://sorte-ar-api.up.railway.app`.
+
+**Guarde essa URL** — ela vai no `vercel.json` do frontend.
 
 ---
 
-## Atualizações
+## Parte 2 — Frontend no Vercel
+
+### 2.1 Atualizar o vercel.json
+
+Abra `vercel.json` na raiz do projeto e substitua `RAILWAY_API_URL` pela URL real do Railway:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://sorte-ar-api.up.railway.app/api/:path*"
+    }
+  ]
+}
+```
+
+Faça commit e push dessa alteração.
+
+### 2.2 Configurar o projeto no Vercel
+
+No painel do Vercel:
+- **Framework Preset:** Other
+- **Root Directory:** `.` (raiz do repositório)
+- **Build Command:** deixe vazio (não há build)
+- **Output Directory:** `.` (raiz)
+- **Install Command:** deixe vazio
+
+Não há variáveis de ambiente necessárias no Vercel — o frontend é puramente estático.
+
+### 2.3 Deploy
+
+Clique em **Deploy**. O Vercel detecta o `vercel.json` e configura o proxy automaticamente.
+
+---
+
+## Parte 3 — Cloudinary (avatares)
+
+1. Crie uma conta gratuita em [cloudinary.com](https://cloudinary.com)
+2. No painel, acesse **Dashboard** → copie **Cloud Name**, **API Key** e **API Secret**
+3. Adicione esses valores nas variáveis do Railway (passo 1.5)
+
+---
+
+## Checklist final
+
+- [ ] Railway: PostgreSQL provisionado
+- [ ] Railway: variáveis de ambiente configuradas (especialmente `JWT_SECRET` e `NODE_ENV=production`)
+- [ ] Railway: `CORS_ORIGIN` apontando para a URL do Vercel
+- [ ] Railway: deploy concluído e `/health` retornando `{"status":"ok"}`
+- [ ] `vercel.json`: `RAILWAY_API_URL` substituído pela URL real do Railway
+- [ ] Vercel: deploy do frontend concluído
+- [ ] Cloudinary: credenciais configuradas no Railway
+- [ ] Teste: registrar usuário, fazer login, criar campeonato
+
+---
+
+## Atualizações futuras
 
 ```bash
-cd /var/www/sortear
-git pull
-
-cd server
-npm install
-npm run build
-npm run db:migrate   # somente se houver novas migrações
-
-pm2 restart sortear-api
+# Apenas faça push para o GitHub — Railway e Vercel fazem redeploy automático.
+git push origin main
 ```
+
+Se houver novas migrações de banco, o `db:migrate` no start command as aplica automaticamente.
