@@ -12,18 +12,26 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/style.css"/>
 <script src="js/api.js"></script>
+<script>
+  // Redirect to login if not authenticated — runs before any rendering
+  (function() {
+    var token = localStorage.getItem('sortear_access_token');
+    if (!token) {
+      window.location.replace('/login');
+    }
+  })();
+</script>
 <script src="js/script.js" defer></script>
 
 </head>
 <body>
 <div class="app">
 
-<!-- AUTH BAR -->
-<div id="auth-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb;padding:8px 16px;display:flex;justify-content:flex-end;align-items:center;gap:10px">
+<!-- TOP BAR — shown only when logged in -->
+<div id="auth-bar" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb;padding:8px 16px;display:flex;justify-content:flex-end;align-items:center;gap:10px">
   <span id="auth-user-name" style="font-size:13px;color:#374151;font-weight:500"></span>
   <button id="auth-profile-btn" onclick="openProfilePage()" style="display:none" class="btn btn-sm">👤 Perfil</button>
-  <button id="auth-logout-btn" onclick="handleLogout()" style="display:none" class="btn btn-sm">Sair</button>
-  <button id="auth-login-btn" onclick="window.location.href='/login'" class="btn btn-sm btn-primary">Entrar / Registrar</button>
+  <button id="auth-logout-btn" onclick="handleLogout()" class="btn btn-sm">Sair</button>
 </div>
 
 <!-- MIGRATION MODAL -->

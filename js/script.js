@@ -2176,27 +2176,16 @@ function initAuth() {
   // Verificar se o usuário acabou de confirmar o email via link
   checkVerificationParam();
 
-  const token = getAccessToken();
-  const authBar = document.getElementById('auth-bar');
-  if (authBar) authBar.style.display = 'flex';
+  const name = localStorage.getItem('sortear_display_name');
+  const nameEl = document.getElementById('auth-user-name');
+  if (nameEl && name) nameEl.textContent = '👤 ' + name;
 
-  if (token) {
-    document.getElementById('auth-login-btn').style.display = 'none';
-    document.getElementById('auth-logout-btn').style.display = '';
-    const profileBtn = document.getElementById('auth-profile-btn');
-    if (profileBtn) profileBtn.style.display = '';
-    const name = localStorage.getItem('sortear_display_name');
-    if (name) document.getElementById('auth-user-name').textContent = '👤 ' + name;
-    // Load championships from API when logged in
-    if (typeof loadChampionshipsFromAPI === 'function') {
-      loadChampionshipsFromAPI().catch(() => {});
-    }
-  } else {
-    document.getElementById('auth-login-btn').style.display = '';
-    document.getElementById('auth-logout-btn').style.display = 'none';
-    document.getElementById('auth-user-name').textContent = '';
-    const profileBtn = document.getElementById('auth-profile-btn');
-    if (profileBtn) profileBtn.style.display = 'none';
+  const profileBtn = document.getElementById('auth-profile-btn');
+  if (profileBtn) profileBtn.style.display = '';
+
+  // Load championships from API when logged in
+  if (typeof loadChampionshipsFromAPI === 'function') {
+    loadChampionshipsFromAPI().catch(() => {});
   }
 }
 
@@ -2389,7 +2378,7 @@ async function handleLogout() {
   try { await apiCall('POST', '/auth/logout', { refreshToken }, true); } catch (_) {}
   clearTokens();
   localStorage.removeItem('sortear_display_name');
-  initAuth();
+  window.location.replace('/login');
 }
 
 // Initialize auth on page load
