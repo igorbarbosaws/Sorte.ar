@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/app.ts",
+    "build": "echo 'No compile step needed — using tsx'",
     "typecheck": "tsc --noEmit",
     "start": "tsx src/app.ts",
     "test": "vitest run",
@@ -31,6 +32,7 @@
     "pg": "8.13.3",
     "resend": "4.0.0",
     "tsx": "4.19.3",
+    "typescript": "5.8.3",
     "zod": "3.24.2"
   },
   "devDependencies": {
