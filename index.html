@@ -28,10 +28,18 @@
 <div class="app">
 
 <!-- TOP BAR — shown only when logged in -->
-<div id="auth-bar" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb;padding:8px 16px;display:flex;justify-content:flex-end;align-items:center;gap:10px">
-  <span id="auth-user-name" style="font-size:13px;color:#374151;font-weight:500"></span>
-  <button id="auth-profile-btn" onclick="openProfilePage()" style="display:none" class="btn btn-sm">👤 Perfil</button>
-  <button id="auth-logout-btn" onclick="handleLogout()" class="btn btn-sm">Sair</button>
+<div id="auth-bar" style="position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid #e5e7eb;padding:8px 16px;display:flex;justify-content:space-between;align-items:center">
+  <!-- Left: logo / home -->
+  <button onclick="goToPage('players')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0;text-decoration:none" title="Início">
+    <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#111827;letter-spacing:-0.5px">Sorte<span style="color:#2563eb">.</span>ar</span>
+  </button>
+  <!-- Right: nav actions -->
+  <div style="display:flex;align-items:center;gap:4px">
+    <button onclick="goToPage('players')" class="btn btn-sm" title="Início" style="padding:6px 10px;font-size:13px">🏠</button>
+    <button id="auth-profile-btn" onclick="openProfilePage()" style="display:none;padding:6px 10px;font-size:13px" class="btn btn-sm" title="Perfil">👤</button>
+    <span id="auth-user-name" style="font-size:12px;color:#6b7280;font-weight:500;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <button id="auth-logout-btn" onclick="handleLogout()" class="btn btn-sm" title="Sair" style="padding:6px 10px;font-size:13px">🚪</button>
+  </div>
 </div>
 
 <!-- MIGRATION MODAL -->

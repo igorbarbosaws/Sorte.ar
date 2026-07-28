@@ -2403,34 +2403,46 @@ async function loadDashboardFeed() {
 }
 
 /**
- * Opens a championship from the feed by loading its data from the API.
+ * Opens a championship from the feed by loading its data from the API
+ * and restoring the full tournament state.
  */
 async function openChampionshipFromFeed(championshipId) {
   try {
+    showToast('Carregando campeonato...', 'info');
     const ch = await apiCall('GET', `/championships/${championshipId}`);
-    if (!ch || !ch.data) { showToast('Não foi possível carregar o campeonato.', 'error'); return; }
-    // Restore the tournament state from the server data
-    const s = ch.data;
-    if (s && typeof s === 'object') {
-      try {
-        // Apply the saved state to restore the tournament
-        Object.assign(tournament, s);
-        const page = s.currentPage || (tournament.champion ? 'champion' : tournament.knockoutRounds?.length ? 'knockout' : tournament.groups?.length ? 'groups' : 'players');
-        goToPage(page);
-        // Sync UI if restore functions exist
-        if (typeof __syncUIToggles === 'function') __syncUIToggles();
-        if (tournament.groups?.length) { renderGroupsPage(false); renderGroupsPage(true); }
-        if (tournament.knockoutRounds?.length) renderKnockoutPage();
-        if (tournament.champion) showChampion();
-        if (tournament.league) { renderLeaguePage(); }
-        if (typeof openProfilePage === 'function') goToPage(page);
-        showToast('Campeonato carregado!', 'success');
-      } catch (e) {
-        showToast('Erro ao restaurar campeonato.', 'error');
-      }
+    if (!ch || !ch.data) {
+      showToast('Não foi possível carregar o campeonato.', 'error');
+      return;
     }
+    // Set the current championship ID for subsequent PATCH saves
+    window._currentChampionshipId = championshipId;
+    // Restore full state using __applyState (players, tournament, pages, etc.)
+    __applyState(ch.data);
+    showToast('Campeonato carregado!', 'success');
   } catch (_) {
     showToast('Não foi possível carregar o campeonato.', 'error');
+  }
+}
+
+/**
+ * Deletes a championship after confirmation.
+ */
+async function deleteChampionship(championshipId, title) {
+  if (!confirm(`Excluir o campeonato "${title}"?\n\nEssa ação não pode ser desfeita.`)) return;
+  try {
+    await apiCall('DELETE', `/championships/${championshipId}`);
+    // If current championship was deleted, clear the ID
+    if (window._currentChampionshipId === championshipId) {
+      window._currentChampionshipId = null;
+    }
+    showToast('Campeonato excluído.', 'success');
+    // Refresh feeds
+    loadMyFeed().catch(() => {});
+    loadDashboardFeed().catch(() => {});
+  } catch (err) {
+    const code = err?.error?.code;
+    if (code === 'AUTHORIZATION_FAILED') showToast('Apenas o criador pode excluir o campeonato.', 'error');
+    else showToast('Erro ao excluir campeonato.', 'error');
   }
 }
 
@@ -2927,9 +2939,14 @@ function _renderFeedItem(item) {
   const userResult = item.finalPosition ? `<div style="font-size:12px;color:#6b7280;margin-top:2px">🎯 Sua posição: ${item.finalPosition}º</div>` : '';
   const updated = new Date(item.updatedAt).toLocaleDateString('pt-BR');
   const role = item.userRole === 'creator' ? '👑 Criador' : '⚽ Jogador';
-  const canOpen = item.userRole === 'creator' && item.id;
-  const openBtn = canOpen
+  const titleEsc = item.title.replace(/'/g, "\\'");
+  // Open button available for creator (has full state) and player (view mode)
+  const openBtn = item.id
     ? `<button class="btn btn-sm btn-primary" style="margin-top:8px;font-size:11px" onclick="openChampionshipFromFeed('${item.id}')">Abrir campeonato →</button>`
+    : '';
+  // Delete button only for creator
+  const deleteBtn = item.userRole === 'creator' && item.id
+    ? `<button class="btn btn-sm" style="margin-top:8px;margin-left:6px;font-size:11px;background:#fef2f2;color:#dc2626" onclick="deleteChampionship('${item.id}', '${titleEsc}')">🗑 Excluir</button>`
     : '';
   return `<div style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:2px">
@@ -2938,7 +2955,7 @@ function _renderFeedItem(item) {
     </div>
     <div style="font-size:11px;color:#9ca3af;margin-bottom:4px">${role} · Atualizado em ${updated}</div>
     ${champion}${phase}${userResult}
-    ${openBtn}
+    <div>${openBtn}${deleteBtn}</div>
   </div>`;
 }
 
