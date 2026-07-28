@@ -2173,7 +2173,6 @@ function __applyState(s){
 let _currentAuthTab = 'login';
 
 function initAuth() {
-  // Verificar se o usuário acabou de confirmar o email via link
   checkVerificationParam();
 
   const name = localStorage.getItem('sortear_display_name');
@@ -2183,9 +2182,12 @@ function initAuth() {
   const profileBtn = document.getElementById('auth-profile-btn');
   if (profileBtn) profileBtn.style.display = '';
 
-  // Load championships from API when logged in
+  // Load championships from API and dashboard feed
   if (typeof loadChampionshipsFromAPI === 'function') {
     loadChampionshipsFromAPI().catch(() => {});
+  }
+  if (typeof loadDashboardFeed === 'function') {
+    loadDashboardFeed().catch(() => {});
   }
 }
 
@@ -2379,6 +2381,132 @@ async function handleLogout() {
   clearTokens();
   localStorage.removeItem('sortear_display_name');
   window.location.replace('/login');
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD FEED — campeonatos em aberto na home
+// ═══════════════════════════════════════════════
+
+async function loadDashboardFeed() {
+  const card = document.getElementById('dashboard-feed-card');
+  const container = document.getElementById('dashboard-feed');
+  if (!card || !container) return;
+  try {
+    const feed = await apiCall('GET', '/championships/feed');
+    const open = Array.isArray(feed) ? feed.filter(f => f.status === 'ongoing') : [];
+    if (open.length === 0) { card.style.display = 'none'; return; }
+    card.style.display = '';
+    container.innerHTML = open.slice(0, 3).map(item => _renderFeedItem(item)).join('');
+  } catch (_) {
+    card.style.display = 'none';
+  }
+}
+
+/**
+ * Opens a championship from the feed by loading its data from the API.
+ */
+async function openChampionshipFromFeed(championshipId) {
+  try {
+    const ch = await apiCall('GET', `/championships/${championshipId}`);
+    if (!ch || !ch.data) { showToast('Não foi possível carregar o campeonato.', 'error'); return; }
+    // Restore the tournament state from the server data
+    const s = ch.data;
+    if (s && typeof s === 'object') {
+      try {
+        // Apply the saved state to restore the tournament
+        Object.assign(tournament, s);
+        const page = s.currentPage || (tournament.champion ? 'champion' : tournament.knockoutRounds?.length ? 'knockout' : tournament.groups?.length ? 'groups' : 'players');
+        goToPage(page);
+        // Sync UI if restore functions exist
+        if (typeof __syncUIToggles === 'function') __syncUIToggles();
+        if (tournament.groups?.length) { renderGroupsPage(false); renderGroupsPage(true); }
+        if (tournament.knockoutRounds?.length) renderKnockoutPage();
+        if (tournament.champion) showChampion();
+        if (tournament.league) { renderLeaguePage(); }
+        if (typeof openProfilePage === 'function') goToPage(page);
+        showToast('Campeonato carregado!', 'success');
+      } catch (e) {
+        showToast('Erro ao restaurar campeonato.', 'error');
+      }
+    }
+  } catch (_) {
+    showToast('Não foi possível carregar o campeonato.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// PERFIL — editar nome, username, avatar
+// ═══════════════════════════════════════════════
+
+async function saveDisplayName() {
+  const input = document.getElementById('edit-display-name');
+  const name = input?.value?.trim();
+  if (!name) return;
+  try {
+    await apiCall('PATCH', '/profile/me', { displayName: name });
+    localStorage.setItem('sortear_display_name', name);
+    document.getElementById('profile-display-name').textContent = name;
+    document.getElementById('auth-user-name').textContent = '👤 ' + name;
+    showToast('Nome atualizado!', 'success');
+  } catch (err) {
+    showToast(err?.error?.message || 'Erro ao atualizar nome.', 'error');
+  }
+}
+
+async function saveUsername() {
+  const input = document.getElementById('edit-username');
+  const feedback = document.getElementById('username-feedback');
+  const raw = input?.value?.trim();
+  if (!raw) return;
+  const username = raw.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  input.value = username;
+  if (username.length < 3) {
+    feedback.textContent = 'Mínimo 3 caracteres.';
+    feedback.style.color = '#dc2626';
+    feedback.style.display = '';
+    return;
+  }
+  try {
+    await apiCall('PATCH', '/profile/me/username', { username });
+    document.getElementById('profile-username-display').textContent = '@' + username;
+    document.getElementById('profile-username-display').style.color = '#6b7280';
+    feedback.textContent = '✅ Nickname salvo!';
+    feedback.style.color = '#15803d';
+    feedback.style.display = '';
+    setTimeout(() => { feedback.style.display = 'none'; }, 3000);
+    showToast('@' + username + ' definido!', 'success');
+  } catch (err) {
+    const code = err?.error?.code;
+    feedback.textContent = code === 'USERNAME_TAKEN' ? 'Este nickname já está em uso.' : (err?.error?.message || 'Erro ao salvar.');
+    feedback.style.color = '#dc2626';
+    feedback.style.display = '';
+  }
+}
+
+async function handleAvatarUpload(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { showToast('Imagem deve ter menos de 2 MB.', 'error'); return; }
+  const formData = new FormData();
+  formData.append('avatar', file);
+  const token = getAccessToken();
+  try {
+    showToast('Enviando foto...', 'info');
+    const res = await fetch('/api/profile/me/avatar', {
+      method: 'POST',
+      headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+      body: formData,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    if (data.avatarUrl) {
+      const avatar = document.getElementById('profile-avatar');
+      avatar.innerHTML = `<img src="${data.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`;
+      showToast('Foto atualizada!', 'success');
+    }
+  } catch (_) {
+    showToast('Erro ao enviar foto. Tente novamente.', 'error');
+  }
 }
 
 // Initialize auth on page load
@@ -2742,16 +2870,26 @@ async function loadProfileData() {
 
 async function loadMyProfile() {
   try {
-    // Use the public profile endpoint — need userId first from token
-    // We store displayName in localStorage after login; use it directly
     const name = localStorage.getItem('sortear_display_name') || '';
     document.getElementById('profile-display-name').textContent = name || 'Meu Perfil';
-    // Try to get full profile from API
     const result = await apiCall('GET', '/profile/me');
     if (result) {
-      if (result.displayName) document.getElementById('profile-display-name').textContent = result.displayName;
+      if (result.displayName) {
+        document.getElementById('profile-display-name').textContent = result.displayName;
+        document.getElementById('edit-display-name').value = result.displayName;
+        localStorage.setItem('sortear_display_name', result.displayName);
+      }
+      // Username
+      const usernameEl = document.getElementById('profile-username-display');
+      if (result.username) {
+        usernameEl.textContent = '@' + result.username;
+        document.getElementById('edit-username').value = result.username;
+      } else {
+        usernameEl.textContent = 'Sem nickname — defina um abaixo';
+        usernameEl.style.color = '#f59e0b';
+      }
       if (result.createdAt) {
-        document.getElementById('profile-joined').textContent = 'Desde ' + new Date(result.createdAt).toLocaleDateString('pt-BR');
+        document.getElementById('profile-joined').textContent = 'Membro desde ' + new Date(result.createdAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       }
       if (result.avatarUrl) {
         const avatar = document.getElementById('profile-avatar');
@@ -2774,26 +2912,34 @@ async function loadMyFeed() {
       feedEl.innerHTML = '<span style="font-size:13px;color:#9ca3af">Nenhum campeonato ainda.</span>';
       return;
     }
-    feedEl.innerHTML = feed.map(item => {
-      const statusBadge = item.status === 'finished'
-        ? `<span style="font-size:11px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:99px">Finalizado</span>`
-        : `<span style="font-size:11px;background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:99px">Em andamento</span>`;
-      const champion = item.champion ? `<div style="font-size:12px;color:#6b7280">🏆 Campeão: <strong>${item.champion}</strong></div>` : '';
-      const phase = item.currentPhase && item.status !== 'finished' ? `<div style="font-size:12px;color:#6b7280">📍 Fase atual: ${item.currentPhase}</div>` : '';
-      const userResult = item.finalPosition ? `<div style="font-size:12px;color:#6b7280">🎯 Sua posição: ${item.finalPosition}º</div>` : '';
-      const updated = new Date(item.updatedAt).toLocaleDateString('pt-BR');
-      return `<div style="padding:10px;border:1px solid #e5e7eb;border-radius:8px">
-        <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:4px">
-          <span style="font-size:14px;font-weight:600">${item.title}</span>
-          ${statusBadge}
-        </div>
-        ${champion}${phase}${userResult}
-        <div style="font-size:11px;color:#9ca3af;margin-top:4px">Atualizado em ${updated} · ${item.userRole === 'creator' ? 'Criador' : 'Jogador'}</div>
-      </div>`;
-    }).join('');
+    feedEl.innerHTML = feed.map(item => _renderFeedItem(item)).join('');
   } catch (_) {
     feedEl.innerHTML = '<span style="font-size:13px;color:#dc2626">Não foi possível carregar o feed.</span>';
   }
+}
+
+function _renderFeedItem(item) {
+  const statusBadge = item.status === 'finished'
+    ? `<span style="font-size:11px;background:#dcfce7;color:#15803d;padding:2px 7px;border-radius:99px;white-space:nowrap">✅ Finalizado</span>`
+    : `<span style="font-size:11px;background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:99px;white-space:nowrap">⚡ Em andamento</span>`;
+  const champion = item.champion ? `<div style="font-size:12px;color:#6b7280;margin-top:2px">🏆 Campeão: <strong>${item.champion}</strong></div>` : '';
+  const phase = item.currentPhase && item.status !== 'finished' ? `<div style="font-size:12px;color:#6b7280;margin-top:2px">📍 ${item.currentPhase}</div>` : '';
+  const userResult = item.finalPosition ? `<div style="font-size:12px;color:#6b7280;margin-top:2px">🎯 Sua posição: ${item.finalPosition}º</div>` : '';
+  const updated = new Date(item.updatedAt).toLocaleDateString('pt-BR');
+  const role = item.userRole === 'creator' ? '👑 Criador' : '⚽ Jogador';
+  const canOpen = item.userRole === 'creator' && item.id;
+  const openBtn = canOpen
+    ? `<button class="btn btn-sm btn-primary" style="margin-top:8px;font-size:11px" onclick="openChampionshipFromFeed('${item.id}')">Abrir campeonato →</button>`
+    : '';
+  return `<div style="padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:2px">
+      <span style="font-size:14px;font-weight:700;color:#111827;line-height:1.3">${item.title}</span>
+      ${statusBadge}
+    </div>
+    <div style="font-size:11px;color:#9ca3af;margin-bottom:4px">${role} · Atualizado em ${updated}</div>
+    ${champion}${phase}${userResult}
+    ${openBtn}
+  </div>`;
 }
 
 async function loadPendingRequests() {

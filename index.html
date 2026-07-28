@@ -53,6 +53,17 @@
   <p>Sorteie times, crie grupos e gerencie seu campeonato</p>
 </div>
 
+<!-- DASHBOARD — campeonatos em aberto -->
+<div id="dashboard-feed-card" class="card" style="margin-bottom:.75rem;display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.04em">⚡ Campeonatos em aberto</span>
+    <button class="btn btn-sm" onclick="openProfilePage()" style="font-size:11px">Ver todos</button>
+  </div>
+  <div id="dashboard-feed" style="display:flex;flex-direction:column;gap:8px">
+    <span style="font-size:12px;color:#9ca3af">Carregando...</span>
+  </div>
+</div>
+
 <!-- STEPPER -->
 <div class="stepper" id="stepper"></div>
 
@@ -362,15 +373,27 @@
 
 <!-- ═══════════════ PAGE: PERFIL ═══════════════ -->
 <div class="page" id="page-profile">
+
+  <!-- Info card -->
   <div class="card" style="margin-bottom:.75rem">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
-      <div id="profile-avatar" style="width:56px;height:56px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden">👤</div>
-      <div>
-        <div id="profile-display-name" style="font-size:17px;font-weight:700"></div>
-        <div id="profile-joined" style="font-size:12px;color:#6b7280"></div>
+    <!-- Avatar + upload -->
+    <div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:16px">
+      <div style="position:relative;flex-shrink:0">
+        <div id="profile-avatar" style="width:72px;height:72px;border-radius:50%;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:30px;overflow:hidden;border:3px solid #e5e7eb">👤</div>
+        <label title="Alterar foto" style="position:absolute;bottom:0;right:0;width:22px;height:22px;background:#2563eb;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid white">
+          <span style="color:white;font-size:11px">✏️</span>
+          <input type="file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleAvatarUpload(this)"/>
+        </label>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div id="profile-display-name" style="font-size:18px;font-weight:700;margin-bottom:2px"></div>
+        <div id="profile-username-display" style="font-size:12px;color:#6b7280;margin-bottom:4px"></div>
+        <div id="profile-joined" style="font-size:11px;color:#9ca3af"></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
       <div class="summary-box" style="text-align:center;padding:10px 6px">
         <div id="profile-stat-player" style="font-size:20px;font-weight:700;color:#2563eb">—</div>
         <div style="font-size:10px;color:#6b7280;letter-spacing:.03em">como jogador</div>
@@ -384,9 +407,33 @@
         <div style="font-size:10px;color:#6b7280;letter-spacing:.03em">🥈 vice</div>
       </div>
     </div>
+
+    <!-- Editar nome e username -->
+    <details style="margin-bottom:0">
+      <summary style="font-size:13px;font-weight:600;cursor:pointer;color:#374151;list-style:none;display:flex;align-items:center;gap:6px">
+        <span>⚙️ Editar perfil</span>
+      </summary>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Nome de exibição</label>
+          <div style="display:flex;gap:8px">
+            <input id="edit-display-name" type="text" placeholder="Seu nome..." style="flex:1;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px"/>
+            <button class="btn btn-primary btn-sm" onclick="saveDisplayName()">Salvar</button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px">Nickname único <span style="font-weight:400;color:#9ca3af">(letras, números, _)</span></label>
+          <div style="display:flex;gap:8px">
+            <input id="edit-username" type="text" placeholder="ex: igor_fc" maxlength="30" style="flex:1;padding:8px 10px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px"/>
+            <button class="btn btn-primary btn-sm" onclick="saveUsername()">Salvar</button>
+          </div>
+          <span id="username-feedback" style="font-size:11px;margin-top:4px;display:none"></span>
+        </div>
+      </div>
+    </details>
   </div>
 
-  <!-- Feed -->
+  <!-- Feed de campeonatos -->
   <div class="card" style="margin-bottom:.75rem">
     <div class="card-title" style="margin-bottom:12px">📋 Meus Campeonatos</div>
     <div id="profile-feed" style="display:flex;flex-direction:column;gap:8px">
@@ -394,7 +441,7 @@
     </div>
   </div>
 
-  <!-- Friend requests pending -->
+  <!-- Solicitações de amizade -->
   <div class="card" style="margin-bottom:.75rem">
     <div class="card-title" style="margin-bottom:10px">🤝 Solicitações pendentes</div>
     <div id="profile-pending-requests" style="display:flex;flex-direction:column;gap:8px">
@@ -410,7 +457,7 @@
     </div>
   </div>
 
-  <!-- Friend list -->
+  <!-- Lista de amigos -->
   <div class="card" style="margin-bottom:.75rem">
     <div class="card-title" style="margin-bottom:10px">👥 Meus amigos</div>
     <div id="profile-friends-list" style="display:flex;flex-direction:column;gap:6px">

@@ -23,6 +23,7 @@ export interface ProfileStats {
 export interface PublicProfile {
   id: string;
   displayName: string;
+  username: string | null;
   avatarUrl: string | null;
   createdAt: Date;
   stats: ProfileStats;
@@ -90,6 +91,7 @@ export class ProfileService {
       .select({
         id: users.id,
         displayName: users.displayName,
+        username: users.username,
         avatarUrl: users.avatarUrl,
         createdAt: users.createdAt,
       })
@@ -164,6 +166,7 @@ export class ProfileService {
     return {
       id: user.id,
       displayName: user.displayName,
+      username: user.username ?? null,
       avatarUrl: user.avatarUrl ?? null,
       createdAt: user.createdAt,
       stats: {
@@ -173,6 +176,32 @@ export class ProfileService {
         runnerUp,
       },
     };
+  }
+
+  // -------------------------------------------------------------------------
+  // updateUsername — unique nickname
+  // -------------------------------------------------------------------------
+  async updateUsername(userId: string, username: string): Promise<void> {
+    const trimmed = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (trimmed.length < 3 || trimmed.length > 30) {
+      throw new AppError("VALIDATION_ERROR", "Username must be 3-30 characters (letters, numbers, underscores)");
+    }
+
+    // Check uniqueness
+    const [existing] = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.username, trimmed))
+      .limit(1);
+
+    if (existing && existing.id !== userId) {
+      throw new AppError("USERNAME_TAKEN", "This username is already taken");
+    }
+
+    await this.db
+      .update(users)
+      .set({ username: trimmed, updatedAt: new Date() })
+      .where(eq(users.id, userId));
   }
 
   // -------------------------------------------------------------------------

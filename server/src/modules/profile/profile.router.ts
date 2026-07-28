@@ -39,8 +39,21 @@ function handleError(err: unknown, res: Response): void {
 }
 
 // ---------------------------------------------------------------------------
+// GET /api/profile/me — authenticated, returns own profile
+// ---------------------------------------------------------------------------
+profileRouter.get("/me", authenticate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) { res.status(401).json({ error: { code: "AUTHENTICATION_FAILED", message: "Authentication required" } }); return; }
+    const profile = await profileService.getPublicProfile(userId);
+    res.status(200).json(profile);
+  } catch (err) {
+    handleError(err, res);
+  }
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/profile/:userId — public, no auth required
-// Requirements: 3.1, 3.4, 3.5
 // ---------------------------------------------------------------------------
 profileRouter.get("/:userId", async (req: Request, res: Response): Promise<void> => {
   try {
@@ -70,8 +83,25 @@ profileRouter.patch("/me", authenticate, async (req: Request, res: Response): Pr
 });
 
 // ---------------------------------------------------------------------------
-// POST /api/profile/me/avatar — requires auth, multipart upload
-// Requirements: 3.6, 3.7, 3.8
+// PATCH /api/profile/me/username
+// ---------------------------------------------------------------------------
+profileRouter.patch("/me/username", authenticate, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) { res.status(401).json({ error: { code: "AUTHENTICATION_FAILED", message: "Authentication required" } }); return; }
+    await profileService.updateUsername(userId, req.body.username as string ?? "");
+    res.status(200).json({ message: "Username updated" });
+  } catch (err) {
+    if (err instanceof AppError && err.code === "USERNAME_TAKEN") {
+      res.status(409).json({ error: { code: err.code, message: err.message } });
+      return;
+    }
+    handleError(err, res);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/profile/me/avatar
 // ---------------------------------------------------------------------------
 profileRouter.post(
   "/me/avatar",
