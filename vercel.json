@@ -3,12 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://sortear-production.up.railway.app/api/:path*"
-    }
-  ],
-  "routes": [
+    },
     {
-      "src": "/login",
-      "dest": "/login.html"
+      "source": "/login",
+      "destination": "/login.html"
     }
   ]
 }
