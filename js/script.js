@@ -2410,16 +2410,36 @@ async function openChampionshipFromFeed(championshipId) {
   try {
     showToast('Carregando campeonato...', 'info');
     const ch = await apiCall('GET', `/championships/${championshipId}`);
-    if (!ch || !ch.data) {
-      showToast('Não foi possível carregar o campeonato.', 'error');
+    if (!ch) {
+      showToast('Campeonato não encontrado.', 'error');
       return;
     }
-    // Set the current championship ID for subsequent PATCH saves
+
+    // The API returns the championship row. The full state is in ch.data
+    const state = ch.data;
+
+    if (!state || typeof state !== 'object') {
+      showToast('Este campeonato não tem dados salvos.', 'error');
+      return;
+    }
+
+    // Set the current championship ID so saves go to PATCH
     window._currentChampionshipId = championshipId;
-    // Restore full state using __applyState (players, tournament, pages, etc.)
-    __applyState(ch.data);
+
+    // If state has the full __collectState shape (has tournament key), use __applyState
+    if (state.tournament !== undefined) {
+      __applyState(state);
+    } else if (state.format !== undefined) {
+      // Older format: data IS the tournament object directly
+      __applyState({ tournament: state, currentPage: state.champion ? 'champion' : 'players' });
+    } else {
+      showToast('Formato de dados do campeonato não reconhecido.', 'error');
+      return;
+    }
+
     showToast('Campeonato carregado!', 'success');
-  } catch (_) {
+  } catch (err) {
+    console.error('openChampionshipFromFeed error:', err);
     showToast('Não foi possível carregar o campeonato.', 'error');
   }
 }
