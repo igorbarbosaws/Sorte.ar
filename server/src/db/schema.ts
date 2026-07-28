@@ -28,6 +28,8 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").notNull().default(false),
   verificationToken: text("verification_token"),
   verificationExpiresAt: timestamptz("verification_expires_at"),
+  resetToken: text("reset_token"),
+  resetExpiresAt: timestamptz("reset_expires_at"),
   createdAt: timestamptz("created_at").notNull().default(sql`now()`),
   updatedAt: timestamptz("updated_at").notNull().default(sql`now()`),
 });

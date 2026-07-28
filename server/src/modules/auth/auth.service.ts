@@ -8,7 +8,7 @@ import {
   generateRefreshToken,
   hashRefreshToken,
 } from "../../lib/jwt.js";
-import { sendVerificationEmail } from "../../lib/email.js";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../../lib/email.js";
 import {
   registerSchema,
   loginSchema,
@@ -211,6 +211,66 @@ export class AuthService {
         verificationExpiresAt: null,
         updatedAt: new Date(),
       })
+      .where(eq(users.id, user.id));
+  }
+
+  // -------------------------------------------------------------------------
+  // forgotPassword — sends a reset link to the given email
+  // -------------------------------------------------------------------------
+  async forgotPassword(email: string): Promise<void> {
+    const [user] = await this.db
+      .select({ id: users.id, displayName: users.displayName })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+
+    // Don't reveal whether the email exists
+    if (!user) return;
+
+    const resetToken = generateVerificationToken();
+    const resetExpiresAt = new Date();
+    resetExpiresAt.setHours(resetExpiresAt.getHours() + 1); // 1 hour
+
+    await this.db
+      .update(users)
+      .set({ resetToken, resetExpiresAt, updatedAt: new Date() })
+      .where(eq(users.id, user.id));
+
+    sendPasswordResetEmail(email, user.displayName, resetToken).catch((err) => {
+      console.error("[auth] Failed to send password reset email:", err);
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // resetPassword — validates token and sets new password
+  // -------------------------------------------------------------------------
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    if (!token || !newPassword) {
+      throw new AppError("VALIDATION_ERROR", "Token and new password are required");
+    }
+    if (newPassword.length < 8) {
+      throw new AppError("VALIDATION_ERROR", "Password must be at least 8 characters");
+    }
+
+    const [user] = await this.db
+      .select({ id: users.id, resetExpiresAt: users.resetExpiresAt })
+      .from(users)
+      .where(eq(users.resetToken, token))
+      .limit(1);
+
+    if (!user) {
+      throw new AppError("INVALID_TOKEN", "Invalid or already used reset token");
+    }
+
+    if (!user.resetExpiresAt || user.resetExpiresAt < new Date()) {
+      throw new AppError("TOKEN_EXPIRED", "Reset link has expired. Request a new one.");
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
+
+    await this.db
+      .update(users)
+      .set({ passwordHash, resetToken: null, resetExpiresAt: null, updatedAt: new Date() })
       .where(eq(users.id, user.id));
   }
 

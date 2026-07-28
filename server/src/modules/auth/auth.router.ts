@@ -93,19 +93,18 @@ authRouter.get("/verify-email", async (req: Request, res: Response) => {
 
   try {
     await authService.verifyEmail(token ?? "");
-    res.redirect(`${appUrl}?verified=1`);
+    res.redirect(`${appUrl}/login?verified=1`);
   } catch (err) {
     if (err instanceof AppError && err.code === "TOKEN_EXPIRED") {
-      res.redirect(`${appUrl}?verified=expired`);
+      res.redirect(`${appUrl}/login?verified=expired`);
     } else {
-      res.redirect(`${appUrl}?verified=error`);
+      res.redirect(`${appUrl}/login?verified=error`);
     }
   }
 });
 
 /**
  * POST /api/auth/resend-verification
- * Sends a new verification email to the given address.
  */
 authRouter.post("/resend-verification", async (req: Request, res: Response) => {
   try {
@@ -115,8 +114,39 @@ authRouter.post("/resend-verification", async (req: Request, res: Response) => {
       return;
     }
     await authService.resendVerification(email);
-    // Always 200 — don't leak whether the email exists
     res.status(200).json({ message: "If the email exists and is unverified, a new link has been sent." });
+  } catch (err) {
+    handleError(err, res);
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Sends a password reset link to the given email.
+ */
+authRouter.post("/forgot-password", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email) {
+      res.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Email is required" } });
+      return;
+    }
+    await authService.forgotPassword(email);
+    res.status(200).json({ message: "If the email is registered, a reset link has been sent." });
+  } catch (err) {
+    handleError(err, res);
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Validates token and sets a new password.
+ */
+authRouter.post("/reset-password", async (req: Request, res: Response) => {
+  try {
+    const { token, password } = req.body as { token?: string; password?: string };
+    await authService.resetPassword(token ?? "", password ?? "");
+    res.status(200).json({ message: "Password updated successfully." });
   } catch (err) {
     handleError(err, res);
   }

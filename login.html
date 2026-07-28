@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR" style="color-scheme:light;background:#f0f2f5">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Entrar — Sorte.ar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0f2f5 50%, #ede9fe 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+
+  .auth-wrapper {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  /* Logo */
+  .brand {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .brand-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -1px;
+  }
+  .brand-dot { color: #2563eb; }
+  .brand-sub {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 4px;
+    letter-spacing: .02em;
+  }
+
+  /* Card */
+  .card {
+    background: white;
+    border-radius: 20px;
+    padding: 32px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color .2s, border-color .2s;
+  }
+  .tab.active {
+    color: #111827;
+    border-bottom-color: #2563eb;
+  }
+
+  /* Views */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Form */
+  .form-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+  .form-sub {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 5px;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"] {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: #111827;
+    background: #f9fafb;
+    transition: border-color .2s, background .2s;
+    margin-bottom: 14px;
+    outline: none;
+  }
+  input:focus {
+    border-color: #2563eb;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.08);
+  }
+
+  /* Error */
+  .error-box {
+    display: none;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #dc2626;
+    font-size: 13px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .error-box.show { display: block; }
+
+  /* Success */
+  .success-box {
+    display: none;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #16a34a;
+    font-size: 13px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .success-box.show { display: block; }
+
+  /* Buttons */
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .6; cursor: not-allowed; }
+
+  .btn-primary {
+    background: #2563eb;
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+
+  .btn-ghost {
+    background: #f3f4f6;
+    color: #374151;
+    margin-top: 10px;
+  }
+  .btn-ghost:hover:not(:disabled) { background: #e5e7eb; }
+
+  /* Links */
+  .link-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .text-link {
+    font-size: 12px;
+    color: #2563eb;
+    cursor: pointer;
+    text-decoration: none;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .text-link:hover { text-decoration: underline; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 20px 0;
+  }
+
+  /* Verification pending */
+  .verify-icon { font-size: 52px; text-align: center; margin-bottom: 16px; }
+  .verify-email {
+    display: inline-block;
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    word-break: break-all;
+  }
+
+  /* Back link */
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #6b7280;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    margin-bottom: 20px;
+    padding: 0;
+  }
+  .back-btn:hover { color: #111827; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 12px;
+    color: #9ca3af;
+  }
+  .footer a {
+    color: #6b7280;
+    text-decoration: none;
+  }
+  .footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="auth-wrapper">
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-name">Sorte<span class="brand-dot">.</span>ar</div>
+    <div class="brand-sub">⚽ Sorteio de times e campeonatos de EAFC</div>
+  </div>
+
+  <!-- Card -->
+  <div class="card" id="auth-card">
+
+    <!-- ── TABS (login / register) ── -->
+    <div class="tabs" id="main-tabs">
+      <button class="tab active" id="tab-login"    onclick="showView('login')">Entrar</button>
+      <button class="tab"        id="tab-register" onclick="showView('register')">Registrar</button>
+    </div>
+
+    <!-- ── VIEW: LOGIN ── -->
+    <div class="view active" id="view-login">
+      <div class="form-title">Bem-vindo de volta 👋</div>
+      <div class="form-sub">Entre com seu e-mail e senha para continuar.</div>
+
+      <div class="error-box"   id="login-error"></div>
+      <div class="success-box" id="login-success"></div>
+
+      <label for="login-email">E-mail</label>
+      <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email"/>
+
+      <label for="login-password">Senha</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()"/>
+
+      <div class="link-row">
+        <button class="text-link" onclick="showView('forgot')">Esqueci minha senha</button>
+        <button class="text-link" onclick="showView('resend')">Reenviar confirmação</button>
+      </div>
+
+      <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Entrar</button>
+    </div>
+
+    <!-- ── VIEW: REGISTER ── -->
+    <div class="view" id="view-register">
+      <div class="form-title">Criar conta</div>
+      <div class="form-sub">Preencha os dados abaixo para começar.</div>
+
+      <div class="error-box" id="register-error"></div>
+
+      <label for="reg-name">Nome de exibição</label>
+      <input type="text" id="reg-name" placeholder="Como quer ser chamado?" autocomplete="name"/>
+
+      <label for="reg-email">E-mail</label>
+      <input type="email" id="reg-email" placeholder="seu@email.com" autocomplete="email"/>
+
+      <label for="reg-password">Senha</label>
+      <input type="password" id="reg-password" placeholder="Mínimo 8 caracteres" autocomplete="new-password"
+             onkeydown="if(event.key==='Enter')doRegister()"/>
+
+      <button class="btn btn-primary" id="register-btn" onclick="doRegister()">Criar conta</button>
+    </div>
+
+    <!-- ── VIEW: VERIFY PENDING ── -->
+    <div class="view" id="view-verify">
+      <button class="back-btn" onclick="showView('login')">← Voltar ao login</button>
+      <div class="verify-icon">📧</div>
+      <div class="form-title" style="text-align:center">Verifique seu e-mail</div>
+      <div class="form-sub" style="text-align:center;margin-top:8px">
+        Enviamos um link de confirmação para<br/>
+        <span class="verify-email" id="verify-email-addr"></span><br/><br/>
+        Clique no link para ativar sua conta. Não recebeu? Verifique a pasta de spam.
+      </div>
+      <div class="error-box"   id="verify-error"></div>
+      <div class="success-box" id="verify-success"></div>
+      <button class="btn btn-ghost" id="resend-btn" onclick="doResend()">🔁 Reenviar e-mail de confirmação</button>
+    </div>
+
+    <!-- ── VIEW: RESEND (from login page) ── -->
+    <div class="view" id="view-resend">
+      <button class="back-btn" onclick="showView('login')">← Voltar</button>
+      <div class="form-title">Reenviar confirmação</div>
+      <div class="form-sub">Informe seu e-mail para receber um novo link de confirmação.</div>
+
+      <div class="error-box"   id="resend-error"></div>
+      <div class="success-box" id="resend-success"></div>
+
+      <label for="resend-email">E-mail</label>
+      <input type="email" id="resend-email" placeholder="seu@email.com"
+             onkeydown="if(event.key==='Enter')doResendStandalone()"/>
+
+      <button class="btn btn-primary" id="resend-standalone-btn" onclick="doResendStandalone()">Reenviar link</button>
+    </div>
+
+    <!-- ── VIEW: FORGOT PASSWORD ── -->
+    <div class="view" id="view-forgot">
+      <button class="back-btn" onclick="showView('login')">← Voltar</button>
+      <div class="form-title">Esqueceu a senha?</div>
+      <div class="form-sub">Informe seu e-mail e enviaremos um link para criar uma nova senha.</div>
+
+      <div class="error-box"   id="forgot-error"></div>
+      <div class="success-box" id="forgot-success"></div>
+
+      <label for="forgot-email">E-mail</label>
+      <input type="email" id="forgot-email" placeholder="seu@email.com"
+             onkeydown="if(event.key==='Enter')doForgot()"/>
+
+      <button class="btn btn-primary" id="forgot-btn" onclick="doForgot()">Enviar link de redefinição</button>
+    </div>
+
+    <!-- ── VIEW: RESET PASSWORD ── -->
+    <div class="view" id="view-reset">
+      <div class="form-title">🔑 Nova senha</div>
+      <div class="form-sub">Escolha uma nova senha segura para sua conta.</div>
+
+      <div class="error-box"   id="reset-error"></div>
+      <div class="success-box" id="reset-success"></div>
+
+      <label for="reset-password">Nova senha</label>
+      <input type="password" id="reset-password" placeholder="Mínimo 8 caracteres" autocomplete="new-password"/>
+
+      <label for="reset-confirm">Confirmar senha</label>
+      <input type="password" id="reset-confirm" placeholder="Repita a nova senha" autocomplete="new-password"
+             onkeydown="if(event.key==='Enter')doReset()"/>
+
+      <button class="btn btn-primary" id="reset-btn" onclick="doReset()">Salvar nova senha</button>
+    </div>
+
+  </div><!-- /.card -->
+
+  <div class="footer">
+    <a href="/">← Voltar ao Sorte.ar</a>
+  </div>
+
+</div><!-- /.auth-wrapper -->
+
+<script src="js/api.js"></script>
+<script>
+// ─── Constants ───────────────────────────────────────────────────
+const API = '/api';
+let _pendingEmail = '';
+let _resetToken   = '';
+
+// ─── View manager ────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+
+  // Tabs only for login/register
+  const mainTabs = document.getElementById('main-tabs');
+  mainTabs.style.display = (name === 'login' || name === 'register') ? 'flex' : 'none';
+
+  // Activate correct tab
+  document.getElementById('tab-login').classList.toggle('active', name === 'login');
+  document.getElementById('tab-register').classList.toggle('active', name === 'register');
+
+  clearAllMessages();
+}
+
+function clearAllMessages() {
+  document.querySelectorAll('.error-box, .success-box').forEach(el => {
+    el.textContent = '';
+    el.className = el.className.replace(' show', '');
+  });
+}
+
+function showError(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function showSuccess(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function setLoading(btnId, loading, defaultText) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Aguarde…' : defaultText;
+}
+
+// ─── Login ───────────────────────────────────────────────────────
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { showError('login-error', 'Preencha e-mail e senha.'); return; }
+
+  setLoading('login-btn', true, 'Entrar');
+  clearAllMessages();
+
+  try {
+    const data = await apiCall('POST', '/auth/login', { email, password }, false);
+    setTokens(data.accessToken, data.refreshToken);
+    // Fetch display name
+    try {
+      const profile = await apiCall('GET', '/profile/me', null, true);
+      if (profile?.displayName) localStorage.setItem('sortear_display_name', profile.displayName);
+    } catch (_) {}
+    // Redirect to main app
+    window.location.href = '/';
+  } catch (err) {
+    setLoading('login-btn', false, 'Entrar');
+    const code = err?.error?.code;
+    if (code === 'EMAIL_NOT_VERIFIED') {
+      _pendingEmail = email;
+      document.getElementById('verify-email-addr').textContent = email;
+      showView('verify');
+    } else if (code === 'AUTHENTICATION_FAILED') {
+      showError('login-error', 'E-mail ou senha incorretos.');
+    } else if (code === 'RATE_LIMIT_EMAIL' || code === 'RATE_LIMIT_IP') {
+      showError('login-error', 'Muitas tentativas. Tente novamente em 15 minutos.');
+    } else {
+      showError('login-error', 'Erro ao entrar. Tente novamente.');
+    }
+  }
+}
+
+// ─── Register ────────────────────────────────────────────────────
+async function doRegister() {
+  const displayName = document.getElementById('reg-name').value.trim();
+  const email       = document.getElementById('reg-email').value.trim();
+  const password    = document.getElementById('reg-password').value;
+
+  if (!displayName || !email || !password) { showError('register-error', 'Preencha todos os campos.'); return; }
+
+  setLoading('register-btn', true, 'Criar conta');
+  clearAllMessages();
+
+  try {
+    await apiCall('POST', '/auth/register', { displayName, email, password }, false);
+    _pendingEmail = email;
+    document.getElementById('verify-email-addr').textContent = email;
+    showView('verify');
+  } catch (err) {
+    setLoading('register-btn', false, 'Criar conta');
+    const code = err?.error?.code;
+    if (code === 'EMAIL_ALREADY_EXISTS') {
+      showError('register-error', 'Este e-mail já está cadastrado. Tente fazer login.');
+    } else if (code === 'VALIDATION_ERROR') {
+      showError('register-error', err?.error?.message || 'Dados inválidos. Verifique os campos.');
+    } else {
+      showError('register-error', 'Erro ao criar conta. Tente novamente.');
+    }
+  }
+}
+
+// ─── Resend (from verify pending view) ───────────────────────────
+async function doResend() {
+  if (!_pendingEmail) return;
+  setLoading('resend-btn', true, '🔁 Reenviar e-mail de confirmação');
+  clearAllMessages();
+  try {
+    await apiCall('POST', '/auth/resend-verification', { email: _pendingEmail }, false);
+    showSuccess('verify-success', '✅ E-mail reenviado! Verifique sua caixa de entrada.');
+  } catch (_) {
+    showError('verify-error', 'Não foi possível reenviar. Tente novamente.');
+  } finally {
+    setLoading('resend-btn', false, '🔁 Reenviar e-mail de confirmação');
+  }
+}
+
+// ─── Resend standalone ───────────────────────────────────────────
+async function doResendStandalone() {
+  const email = document.getElementById('resend-email').value.trim();
+  if (!email) { showError('resend-error', 'Informe seu e-mail.'); return; }
+
+  setLoading('resend-standalone-btn', true, 'Reenviar link');
+  clearAllMessages();
+
+  try {
+    await apiCall('POST', '/auth/resend-verification', { email }, false);
+    showSuccess('resend-success', '✅ Se o e-mail existir e não estiver confirmado, o link foi enviado!');
+  } catch (_) {
+    showError('resend-error', 'Não foi possível reenviar. Tente novamente.');
+  } finally {
+    setLoading('resend-standalone-btn', false, 'Reenviar link');
+  }
+}
+
+// ─── Forgot password ─────────────────────────────────────────────
+async function doForgot() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) { showError('forgot-error', 'Informe seu e-mail.'); return; }
+
+  setLoading('forgot-btn', true, 'Enviar link de redefinição');
+  clearAllMessages();
+
+  try {
+    await apiCall('POST', '/auth/forgot-password', { email }, false);
+    showSuccess('forgot-success', '✅ Se o e-mail estiver cadastrado, um link de redefinição foi enviado!');
+    document.getElementById('forgot-email').value = '';
+  } catch (_) {
+    showError('forgot-error', 'Não foi possível enviar. Tente novamente.');
+  } finally {
+    setLoading('forgot-btn', false, 'Enviar link de redefinição');
+  }
+}
+
+// ─── Reset password ──────────────────────────────────────────────
+async function doReset() {
+  const password = document.getElementById('reset-password').value;
+  const confirm  = document.getElementById('reset-confirm').value;
+
+  if (!password || !confirm) { showError('reset-error', 'Preencha os dois campos.'); return; }
+  if (password !== confirm)  { showError('reset-error', 'As senhas não coincidem.'); return; }
+  if (password.length < 8)   { showError('reset-error', 'A senha deve ter ao menos 8 caracteres.'); return; }
+
+  setLoading('reset-btn', true, 'Salvar nova senha');
+  clearAllMessages();
+
+  try {
+    await apiCall('POST', '/auth/reset-password', { token: _resetToken, password }, false);
+    showSuccess('reset-success', '✅ Senha alterada com sucesso! Redirecionando para o login…');
+    setTimeout(() => {
+      _resetToken = '';
+      showView('login');
+      showSuccess('login-success', '✅ Senha redefinida! Entre com sua nova senha.');
+    }, 2000);
+  } catch (err) {
+    setLoading('reset-btn', false, 'Salvar nova senha');
+    const code = err?.error?.code;
+    if (code === 'TOKEN_EXPIRED') {
+      showError('reset-error', 'Este link expirou. Solicite um novo na tela de "Esqueci minha senha".');
+    } else {
+      showError('reset-error', err?.error?.message || 'Erro ao redefinir. Tente novamente.');
+    }
+  }
+}
+
+// ─── URL param handling ──────────────────────────────────────────
+(function init() {
+  const params = new URLSearchParams(window.location.search);
+
+  // ?verified=1 — came from email verification link
+  const verified = params.get('verified');
+  if (verified === '1') {
+    showView('login');
+    showSuccess('login-success', '✅ E-mail confirmado! Faça login para continuar.');
+  } else if (verified === 'expired') {
+    showView('resend');
+    showError('resend-error', '⏰ Link expirado. Informe seu e-mail abaixo para receber um novo.');
+  }
+
+  // ?reset_token=xxx — came from password reset email
+  const resetToken = params.get('reset_token');
+  if (resetToken) {
+    _resetToken = resetToken;
+    showView('reset');
+  }
+
+  // Clean URL
+  if (verified || resetToken) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('verified');
+    url.searchParams.delete('reset_token');
+    window.history.replaceState({}, '', url.toString());
+  }
+
+  // If already logged in, go to app
+  const token = typeof getAccessToken === 'function' ? getAccessToken() : localStorage.getItem('sortear_access_token');
+  if (token) {
+    window.location.href = '/';
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,5 +1,0 @@
-[phases.build]
-cmds = ["npm ci --include=dev"]
-
-[start]
-cmd = "npm run db:migrate && npm start"

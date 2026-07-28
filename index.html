@@ -23,30 +23,7 @@
   <span id="auth-user-name" style="font-size:13px;color:#374151;font-weight:500"></span>
   <button id="auth-profile-btn" onclick="openProfilePage()" style="display:none" class="btn btn-sm">👤 Perfil</button>
   <button id="auth-logout-btn" onclick="handleLogout()" style="display:none" class="btn btn-sm">Sair</button>
-  <button id="auth-login-btn" onclick="showAuthModal()" class="btn btn-sm btn-primary">Entrar / Registrar</button>
-</div>
-<!-- AUTH MODAL -->
-<div id="auth-modal" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
-  <div style="background:white;border-radius:16px;padding:24px;width:min(400px,90vw);box-shadow:0 20px 60px rgba(0,0,0,0.2)">
-    <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #e5e7eb">
-      <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;padding:8px;border:none;background:none;cursor:pointer;font-weight:600;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px">Entrar</button>
-      <button id="tab-register" onclick="switchAuthTab('register')" style="flex:1;padding:8px;border:none;background:none;cursor:pointer;font-weight:600;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px">Registrar</button>
-    </div>
-    <div id="auth-error" style="display:none;color:#dc2626;font-size:13px;margin-bottom:12px;padding:8px 12px;background:#fef2f2;border-radius:8px"></div>
-    <div id="form-login">
-      <input id="login-email" type="email" placeholder="E-mail" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:10px;font-size:14px;box-sizing:border-box"/>
-      <input id="login-password" type="password" placeholder="Senha" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:16px;font-size:14px;box-sizing:border-box"/>
-      <button onclick="handleLogin()" class="btn btn-primary btn-full">Entrar</button>
-    </div>
-    <div id="form-register" style="display:none">
-      <input id="reg-name" type="text" placeholder="Nome de exibição" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:10px;font-size:14px;box-sizing:border-box"/>
-      <input id="reg-email" type="email" placeholder="E-mail" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:10px;font-size:14px;box-sizing:border-box"/>
-      <input id="reg-password" type="password" placeholder="Senha (mín. 8 caracteres)" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;margin-bottom:16px;font-size:14px;box-sizing:border-box"/>
-      <button onclick="handleRegister()" class="btn btn-primary btn-full">Criar conta</button>
-    </div>
-    <button onclick="hideAuthModal()" style="margin-top:12px;width:100%;padding:8px;border:none;background:none;cursor:pointer;color:#9ca3af;font-size:13px">Fechar</button>
-  </div>
-</div>
+  <button id="auth-login-btn" onclick="window.location.href='/login'" class="btn btn-sm btn-primary">Entrar / Registrar</button>
 
 <!-- MIGRATION MODAL -->
 <div id="migration-modal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.5);align-items:center;justify-content:center">
